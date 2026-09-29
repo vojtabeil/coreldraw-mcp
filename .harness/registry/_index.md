@@ -13,6 +13,8 @@
 
 ---
 
+[2026-09-29 FIX] 修复 COM Import/SaveAs 调用（Import 属于 Layer + SaveAs/ImportEx 须显式传 Options），新增 core.connection.import_file/save_document_as；.claude/settings.json hook 改为先 cd $CLAUDE_PROJECT_DIR。batch_merge/assemble_engineering_drawing 未实测；export.py 传 None 的 Export 调用待验证
+
 [2026-09-29 VERIFY] 排查 /mcp 连接 coreldraw 报 HTTP 501：8765 端口被 `python -m http.server` 占用（PID 43036），且无 .env 导致 MCP_TRANSPORT 默认 stdio、MCP Server 未以 HTTP 模式启动。修复步骤：停占用进程 → cp .env.example .env → cd server && python server.py。未改代码
 
 [2026-06-04 FIX] 新增英文 README，原中文版改为 README-CN，修正两处 License 行错写的 MIT → Apache 2.0
