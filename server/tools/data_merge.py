@@ -3,7 +3,7 @@
 import os
 import tempfile
 
-from core.connection import get_connection
+from core.connection import get_connection, import_file, save_document_as
 from core.models import ToolResult
 
 
@@ -83,7 +83,7 @@ def merge_record(template_path: str, data: dict, output_path: str) -> ToolResult
         dirpath = os.path.dirname(output_path)
         if dirpath:
             os.makedirs(dirpath, exist_ok=True)
-        doc.SaveAs(output_path)
+        save_document_as(conn.app, doc, output_path)
         doc.Close()
         return {"template": template_path, "output": output_path, "replaced": replaced}
 
@@ -167,7 +167,7 @@ def generate_barcode(barcode_type: str, data: str, x: float, y: float, width: fl
             final_svg = svg_path.replace(".svg", "") + ".svg" if os.path.exists(svg_path.replace(".svg", "") + ".svg") else svg_path
             if os.path.exists(final_svg):
                 doc = conn.app.ActiveDocument
-                doc.Import(final_svg)
+                import_file(conn.app, doc, final_svg)
                 page = doc.ActivePage
                 shapes = page.Shapes
                 if shapes.Count > 0:
@@ -222,7 +222,7 @@ def generate_qrcode(data: str, x: float, y: float, size: float) -> ToolResult:
         try:
             img.save(svg_path)
             doc = conn.app.ActiveDocument
-            doc.Import(svg_path)
+            import_file(conn.app, doc, svg_path)
             page = doc.ActivePage
             shapes = page.Shapes
             if shapes.Count > 0:

@@ -196,3 +196,13 @@ def close_connection() -> None:
     if _connection:
         _connection.disconnect()
         _connection = None
+
+
+def import_file(app: Any, doc: Any, path: str) -> None:
+    """导入文件到当前图层。Import 属于 Layer 而非 Document，且可选参数必须显式传入。"""
+    doc.ActiveLayer.ImportEx(path, 0, app.CreateStructImportOptions()).Finish()
+
+
+def save_document_as(app: Any, doc: Any, path: str) -> None:
+    """另存为。SaveAs 的 Options 参数必须显式传入，省略会导致 COM 参数转换失败。"""
+    doc.SaveAs(path, app.CreateStructSaveAsOptions())

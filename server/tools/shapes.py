@@ -1,6 +1,6 @@
 """图形操作工具 — 创建/查找/修改形状，布尔运算，导入素材，对齐/分布/层级/旋转/缩放"""
 
-from core.connection import get_connection
+from core.connection import get_connection, import_file
 from core.models import ToolResult
 
 
@@ -142,7 +142,7 @@ def import_svg(path: str, x: float = 0, y: float = 0) -> ToolResult:
         if not os.path.isfile(path):
             raise FileNotFoundError(f"SVG 文件不存在: {path}")
         doc = conn.app.ActiveDocument
-        doc.Import(path)
+        import_file(conn.app, doc, path)
         if x != 0 or y != 0:
             try:
                 shapes = doc.ActivePage.Shapes
@@ -171,7 +171,7 @@ def import_image(path: str, x: float = 0, y: float = 0, width: float = 0, height
         if not os.path.isfile(path):
             raise FileNotFoundError(f"图片文件不存在: {path}")
         doc = conn.app.ActiveDocument
-        doc.Import(path)
+        import_file(conn.app, doc, path)
         try:
             shapes = doc.ActivePage.Shapes
             if shapes.Count > 0:

@@ -2,7 +2,7 @@
 
 import os
 
-from core.connection import get_connection
+from core.connection import get_connection, import_file, save_document_as
 from core.models import ToolResult
 
 _CDR_TEXT_SHAPE = 3
@@ -78,7 +78,7 @@ def populate_title_block(
         dirpath = os.path.dirname(save_path)
         if dirpath:
             os.makedirs(dirpath, exist_ok=True)
-        doc.SaveAs(save_path)
+        save_document_as(conn.app, doc, save_path)
         doc.Close()
         not_found = [k for k in fields if k not in replaced]
         return {
@@ -146,12 +146,12 @@ def assemble_engineering_drawing(
                 pass
 
         # 导入设计文件到框架
-        doc.Import(design_path)
+        import_file(conn.app, doc, design_path)
 
         dirpath = os.path.dirname(output_path)
         if dirpath:
             os.makedirs(dirpath, exist_ok=True)
-        doc.SaveAs(output_path)
+        save_document_as(conn.app, doc, output_path)
         doc.Close()
         return {
             "output": output_path,

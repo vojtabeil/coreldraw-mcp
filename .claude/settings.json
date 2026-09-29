@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .harness/hooks/session-start.sh",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bash .harness/hooks/session-start.sh",
             "additionalContext": true,
             "timeout": 10
           }
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .harness/hooks/guard-dangerous.sh",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bash .harness/hooks/guard-dangerous.sh",
             "timeout": 5
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .harness/hooks/post-write.sh",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bash .harness/hooks/post-write.sh",
             "async": true,
             "timeout": 15
           }
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .harness/hooks/session-end.sh",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bash .harness/hooks/session-end.sh",
             "additionalContext": true,
             "timeout": 10
           }

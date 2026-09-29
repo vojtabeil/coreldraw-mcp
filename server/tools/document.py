@@ -1,6 +1,6 @@
 """文档管理工具 — 打开模板、创建/保存/关闭文档、页面管理"""
 
-from core.connection import get_connection
+from core.connection import get_connection, save_document_as
 from core.models import ToolResult
 
 _CDR_MILLIMETER = 3
@@ -74,7 +74,7 @@ def save_document(path: str = "") -> ToolResult:
         if not doc:
             raise RuntimeError("没有打开的文档")
         if path:
-            doc.SaveAs(path)
+            save_document_as(conn.app, doc, path)
             saved_path = path
         else:
             doc.Save()
