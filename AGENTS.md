@@ -1,74 +1,103 @@
-# CorelDRAW Signage Agent — Agent 工作规范
+# CorelDRAW Signage Agent — Agent Guidelines
 
-> 非自推信息。harness 流程由 Hook 强制执行，本文不重复。
+> Only information an agent cannot infer from the code on its own.
 
-## 平台核心约束
+## Platform constraints
 
-- **所有 COM 调用仅 Windows 有效**。macOS 只能做语法检查（AST parse + import 不含 COM 的模块）
-- **Python 必须是 64-bit**（`pywin32` 与 CorelDRAW 位数必须一致，32-bit Python 会导致 COM 调用静默失败）
-- **CorelDRAW 必须预先启动**，MCP Server 连接失败不会自动拉起
+- **All COM calls work on Windows only.** On macOS/Linux you can only do syntax checks (AST parse + importing modules
+  that don't touch COM).
+- **Python must be 64-bit** (`pywin32` must match CorelDRAW's bitness; 32-bit Python makes COM calls fail silently).
+- **CorelDRAW must already be running.** The MCP server does not launch it if the connection fails.
 
-## 入口与运行方式
+## Entry points
 
-| 入口 | 命令 | 用途 |
+| Entry point | Command | Purpose |
 |------|------|------|
-| MCP Server | `cd server && python server.py` | 工具提供方，供 Claude/OpenCode 连接 |
-| Streamlit UI | `cd server && streamlit run app.py` | 设计师调试用的 Chat 界面 |
-| Agent 脚本 | `from agent.runner import SignageAgent` | 编程方式调用 |
+| MCP Server | `cd server && python server.py` | Tool provider for Claude/OpenCode |
+| Streamlit UI | `cd server && streamlit run app.py` | Chat UI for designers / debugging |
+| Agent script | `from agent.runner import SignageAgent` | Programmatic use |
 
-MCP Server 默认 `stdio` 传输，设 `MCP_TRANSPORT=streamable-http` 启动 HTTP 模式（端口 8765），`.mcp.json` 已配好连接地址。
+The MCP server uses the `stdio` transport by default. Set `MCP_TRANSPORT=streamable-http` for HTTP mode (port 8765);
+`.mcp.json` already points to that URL. The server does not hot-reload — restart it after changing code in `server/`.
 
-## 工具层架构约定（添加/修改工具时必须遵守）
+## Tool layer conventions (required when adding/changing tools)
 
-1. **工具是裸函数**，不用 `@mcp.tool()` 装饰器。由 `server/server.py` 的 `register_tools()` 统一 `mcp.add_tool()`。
-2. **所有工具返回 `ToolResult`**（`from core.models import ToolResult`），用 `ToolResult.ok()` / `ToolResult.fail()` 构建。
-3. **统一模式**：
+1. **Tools are plain functions** — no `@mcp.tool()` decorator. `register_tools()` in `server/server.py` registers them
+   all with `mcp.add_tool()`.
+2. **Every tool returns a `ToolResult`** (`from core.models import ToolResult`), built with `ToolResult.ok()` /
+   `ToolResult.fail()`.
+3. **Standard pattern**:
    ```python
    def tool_name(param: type) -> ToolResult:
        conn = get_connection()
        if not conn.status.connected:
-           return ToolResult.fail("CorelDRAW 未连接")
+           return ToolResult.fail("CorelDRAW is not connected")
        result = conn.safe_call(lambda: actual_com_work())
        if result["success"]: return ToolResult.ok(...)
-       return ToolResult.fail(result.get("error", "失败"))
+       return ToolResult.fail(result.get("error", "Failed"))
    ```
-4. **所有工具注册在 `server.py`**，新增工具必须同时在该文件加 `mcp.add_tool()`。
-5. **函数 docstring 即 MCP 工具描述**，会被 Agent 看到，写清楚参数含义。
-6. **COM 常量是硬编码整数**（`cdrDXF=86`, `cdrPNG=776`, `cdrMillimeter=2`, `cdrTextShape=3` 等）。这些常量来自 CorelDRAW 类型库，只有 Windows 上运行 `makepy` 才能生成类型存根，不要试图从 `win32com.client.constants` 导入。
+4. **Every tool is registered in `server.py`** — a new tool must also get an `mcp.add_tool()` line there.
+5. **The function docstring is the MCP tool description** the agent sees — explain every parameter clearly.
+6. **COM constants are hard-coded integers** (`cdrDXF=86`, `cdrPNG=776`, `cdrMillimeter=2`, `cdrTextShape=3`, etc.).
+   They come from the CorelDRAW type library, whose stubs only exist after running `makepy` on Windows — do not try to
+   import them from `win32com.client.constants`.
+7. **Importing and saving**: use `import_file()` and `save_document_as()` from `core.connection`. `Import` belongs to a
+   Layer, not a Document, and `SaveAs`/`ImportEx` need their options object passed explicitly — omitting it makes
+   pywin32 fail with "The Python instance can not be converted to a COM object".
 
-## 已知的代码重复与特殊处理
+## Known duplication and special cases
 
-- `_find_shape()` 在 `shapes.py`、`colors.py`、`layers.py` 三处重复（各有细微差异，尚未统一）
-- `check_rgb_colors` 在两个文件存在：`colors.py` 用于交互式检查，`preflight.py` 用于批量质检。Agent runner 里做了去重。
-- PNG 导出有两套 API：`ExportBitmap`（主方案）和 `Export`（fallback），因不同 CorelDRAW 版本行为不一
-- Pantone 填充的 `FindPantone` 方法在不同 CorelDRAW 版本路径不同，用了 try/except 双方案
+- `_find_shape()` is duplicated in `shapes.py`, `colors.py` and `layers.py` (with small differences; not unified yet).
+- `check_rgb_colors` exists in two files: `colors.py` for interactive checks, `preflight.py` for batch QA. The agent
+  runner de-duplicates them.
+- PNG export has two APIs: `ExportBitmap` (primary) and `Export` (fallback), because CorelDRAW versions behave
+  differently.
+- The Pantone fill method `FindPantone` lives at different paths in different CorelDRAW versions; there is a
+  try/except with two approaches.
 
-## Agent (runner.py) 关键约定
+## Known pitfalls
+
+- All COM calls must run on the same STA thread (`_COMThread`). In HTTP mode FastMCP dispatches tools on a thread
+  pool, so tool functions must never call COM directly — always go through `conn.safe_call()`.
+- `disconnect()` only releases COM references and never calls `Quit()`; the user manages CorelDRAW's lifetime.
+- `reconnect_on_failure=False`: a failing tool must not trigger a reconnect, to avoid cascading crashes.
+- **`cdrTextShape` is 3, not 6** (verified on CorelDRAW 2020).
+- **`layer.Color` returns a COM object** and cannot go into a dict as-is; convert with `int(c)` or `str(c)`, otherwise
+  FastMCP fails to serialize the outputSchema.
+- **`register_tools()` imports all tool modules in one statement**: if any module fails to import, no tools get
+  registered and the MCP client sees an empty tool list.
+- CorelDRAW X6: `ExportEx` and `ExportBitmap` accept `None` arguments but not a COM rect from `app.CreateRect()`; the
+  fallback is `doc.Export(path, filter, scope, None, None)`.
+
+## Agent (runner.py) conventions
 
 - `SignageAgent(provider="anthropic"|"openai", model=..., api_key=..., base_url=...)`
-- API Key 环境变量：`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_API_KEY`
-- `run_single()` — 同步阻塞，返回 dict
-- `run_single_stream()` — 生成器，逐事件 yield（供 Streamlit 消费）。事件类型：`thinking`, `text`, `tool_call`, `tool_result`, `preview`, `final`, `error`
-- Provider 为 `openai` 时，DeepSeek 用 `base_url="https://api.deepseek.com"`，千问用 `base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"`
-- 工具定义通过 `inspect.signature` 自动从函数签名生成
+- API key env vars: `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_API_KEY`
+- `run_single()` — synchronous, blocking, returns a dict
+- `run_single_stream()` — generator yielding events one by one (consumed by Streamlit). Event types: `thinking`,
+  `text`, `tool_call`, `tool_result`, `preview`, `final`, `error`
+- With provider `openai`: DeepSeek uses `base_url="https://api.deepseek.com"`, Qwen uses
+  `base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"`
+- Tool definitions are generated automatically from function signatures via `inspect.signature`
 
-## 校验命令
+## Checks
 
 ```
-ruff check server/      # lint（line-length=120, py311, E/F/I/N/W）
-python test_e2e.py      # 端到端测试（需 Windows + CorelDRAW 运行中）
+ruff check server/      # lint (line-length=120, py311, E/F/I/N/W)
+python test_e2e.py      # end-to-end test (needs Windows + CorelDRAW running)
 ```
 
-无 pytest 单元测试（dev 依赖已声明但未编写测试文件）。
+There are no pytest unit tests (dev dependencies are declared but no test files exist yet).
 
-## 环境配置
+## Environment
 
 ```bash
-cp .env.example .env   # 填一个 LLM API Key 即可
+cp .env.example .env   # filling in one LLM API key is enough
 ```
 
-`.env` 最小内容：任意一个 `*_API_KEY` + `MCP_TRANSPORT`（默认 stdio）。其他均有默认值。
+Minimal `.env`: any one `*_API_KEY` + `MCP_TRANSPORT` (defaults to stdio). Everything else has defaults. The MCP server
+itself needs no API key — only the Streamlit UI and `SignageAgent` do.
 
-## 当前阶段
+## Current status
 
-Phase 1 MVP 全部完成（feat-001～004 passes=true）。Phase 2 批量生产待开始。详见 `.harness/product/backlog.md`。
+Phase 1 MVP is complete. See `docs/ROADMAP.md` for what's done, deferred and in the backlog.

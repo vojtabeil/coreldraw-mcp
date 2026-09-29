@@ -1,22 +1,22 @@
 # Contributing to CorelDRAW Signage MCP
 
-## 平台限制说明
+## Platform requirements
 
-本项目核心功能依赖 **Windows + CorelDRAW COM API**，开发环境要求：
+The core functionality depends on **Windows + the CorelDRAW COM API**. Development requires:
 
 - Windows 10/11
-- CorelDRAW X6 或更高版本（需已安装激活）
-- Python 3.11+，**必须是 64-bit**（与 CorelDRAW 位数一致）
+- CorelDRAW X6 or later (installed and activated)
+- Python 3.11+, **64-bit** (must match CorelDRAW's bitness)
 
-在非 Windows 环境下，只能做语法检查（`ruff check`），无法运行端到端测试。
+On non-Windows systems you can only run static checks (`ruff check`); end-to-end tests cannot run.
 
 ---
 
-## 快速开始
+## Quick start
 
 ```bash
-git clone https://github.com/<your-fork>/coreldraw-signage-mcp
-cd coreldraw-signage-mcp
+git clone https://github.com/<your-fork>/coreldraw-mcp
+cd coreldraw-mcp
 
 python -m venv .venv
 .venv\Scripts\activate
@@ -24,57 +24,58 @@ python -m venv .venv
 pip install -e ".[dev]"
 
 cp .env.example .env
-# 填入至少一个 LLM API Key
+# Fill in at least one LLM API key
 ```
 
 ---
 
-## 提交规范
+## Commit messages
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)：
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-| 前缀 | 用途 |
+| Prefix | Use for |
 |------|------|
-| `feat:` | 新增工具或功能 |
-| `fix:` | Bug 修复 |
-| `docs:` | 文档变更 |
-| `refactor:` | 不影响功能的代码重构 |
-| `chore:` | 构建/工具链变更 |
+| `feat:` | New tool or feature |
+| `fix:` | Bug fix |
+| `docs:` | Documentation changes |
+| `refactor:` | Code restructuring with no functional change |
+| `chore:` | Build/tooling changes |
 
-## 代码规范
+## Code style
 
-提交前运行 lint：
+Run the linter before committing:
 
 ```bash
 ruff check server/
 ```
 
-配置见 `pyproject.toml`：`line-length=120`，`target-version=py311`，`select=E,F,I,N,W`。
+Configuration is in `pyproject.toml`: `line-length=120`, `target-version=py311`, `select=E,F,I,N,W`.
 
 ---
 
-## 新增 MCP 工具
+## Adding an MCP tool
 
-新增工具必须同时完成以下三件事，缺一不可：
+A new tool needs all three of the following:
 
-1. **实现函数**：放在 `server/tools/` 对应模块，返回 `ToolResult`，参见 [CLAUDE.md](CLAUDE.md) 中的统一模式
-2. **注册工具**：在 `server/server.py` 的 `register_tools()` 中调用 `mcp.add_tool()`
-3. **写 docstring**：函数 docstring 会直接暴露给 Agent，描述清楚参数含义
+1. **Implement the function** in the matching module under `server/tools/`, returning a `ToolResult` — see the
+   standard pattern in [CLAUDE.md](CLAUDE.md)
+2. **Register the tool** with `mcp.add_tool()` in `register_tools()` in `server/server.py`
+3. **Write the docstring** — it is exposed to the agent as the tool description, so explain every parameter
 
-COM 常量用硬编码整数（`cdrPNG=776` 等），不从 `win32com.client.constants` 导入。
-
----
-
-## Pull Request 流程
-
-1. Fork → 新建分支（`feat/your-feature` 或 `fix/your-bug`）
-2. 实现 + `ruff check` 通过
-3. 在 PR 描述中说明：改了哪些工具、在哪个版本 CorelDRAW 测试过
-4. 如果无法在本地测试（非 Windows），请在 PR 中注明
+COM constants are hard-coded integers (`cdrPNG=776`, etc.); do not import them from `win32com.client.constants`.
 
 ---
 
-## 问题反馈
+## Pull requests
 
-- Bug 报告：使用 GitHub Issues，附上 CorelDRAW 版本、Python 版本和错误日志
-- 功能建议：先开 Issue 讨论，避免重复劳动
+1. Fork → create a branch (`feat/your-feature` or `fix/your-bug`)
+2. Implement it and make sure `ruff check` passes
+3. In the PR description, list the tools you changed and the CorelDRAW version you tested with
+4. If you could not test locally (non-Windows), say so in the PR
+
+---
+
+## Reporting issues
+
+- Bugs: open a GitHub issue with your CorelDRAW version, Python version and the error log
+- Feature ideas: open an issue for discussion first to avoid duplicated work

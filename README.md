@@ -2,8 +2,6 @@
 
 > Let AI drive CorelDRAW directly via the Model Context Protocol — automated design file generation at scale
 
-[中文文档](README-CN.md)
-
 ## Overview
 
 This project exposes CorelDRAW as an MCP (Model Context Protocol) tool server. An AI Agent connects via COM API to create documents, replace text, manipulate shapes, run preflight checks, and batch-export production files — all from natural language instructions.
