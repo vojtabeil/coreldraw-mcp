@@ -1,41 +1,41 @@
 {
-  "_description": "模板库配置 — Agent 通过此文件了解可用模板及其占位符定义",
+  "_description": "Template library configuration - the Agent uses this file to learn the available templates and their placeholder definitions",
   "templates": {
-    "门牌_200x80_红底白字": {
-      "file": "templates/门牌_200x80_红底白字.cdr",
-      "description": "标准门牌，200×80mm，Pantone 485 红底白字",
+    "door_sign_200x80_red_white": {
+      "file": "templates/door_sign_200x80_red_white.cdr",
+      "description": "Standard door sign, 200×80mm, white text on Pantone 485 red background",
       "width_mm": 200,
       "height_mm": 80,
       "placeholders": {
         "placeholder_room": {
           "type": "text",
           "max_chars": 6,
-          "desc": "房间号",
-          "default_font": "微软雅黑",
+          "desc": "Room number",
+          "default_font": "Microsoft YaHei",
           "default_size": 36,
           "alignment": "center"
         },
         "placeholder_dept": {
           "type": "text",
           "max_chars": 12,
-          "desc": "部门名称",
-          "default_font": "微软雅黑",
+          "desc": "Department name",
+          "default_font": "Microsoft YaHei",
           "default_size": 18,
           "alignment": "center"
         },
         "placeholder_floor": {
           "type": "text",
           "max_chars": 4,
-          "desc": "楼层",
+          "desc": "Floor",
           "default_font": "Arial",
           "default_size": 14,
           "alignment": "right"
         }
       },
       "layers": {
-        "print_layer": "印刷内容层（文字+底色）",
-        "laser_red": "激光雕刻-底色层（红色导出）",
-        "laser_white": "激光雕刻-文字层（白色导出）"
+        "print_layer": "Print content layer (text + background color)",
+        "laser_red": "Laser engraving - background layer (exported as red)",
+        "laser_white": "Laser engraving - text layer (exported as white)"
       },
       "export_profiles": {
         "print_pdf": {
@@ -49,41 +49,41 @@
         }
       }
     },
-    "门牌_300x120_蓝底白字": {
-      "file": "templates/门牌_300x120_蓝底白字.cdr",
-      "description": "加宽门牌，300×120mm，专色蓝底白字",
+    "door_sign_300x120_blue_white": {
+      "file": "templates/door_sign_300x120_blue_white.cdr",
+      "description": "Wide door sign, 300×120mm, white text on spot color blue background",
       "width_mm": 300,
       "height_mm": 120,
       "placeholders": {
         "placeholder_room": {
           "type": "text",
           "max_chars": 8,
-          "desc": "房间号",
-          "default_font": "微软雅黑",
+          "desc": "Room number",
+          "default_font": "Microsoft YaHei",
           "default_size": 48,
           "alignment": "center"
         },
         "placeholder_dept": {
           "type": "text",
           "max_chars": 16,
-          "desc": "部门名称",
-          "default_font": "微软雅黑",
+          "desc": "Department name",
+          "default_font": "Microsoft YaHei",
           "default_size": 24,
           "alignment": "center"
         },
         "placeholder_remark": {
           "type": "text",
           "max_chars": 20,
-          "desc": "备注信息",
-          "default_font": "微软雅黑",
+          "desc": "Remarks",
+          "default_font": "Microsoft YaHei",
           "default_size": 12,
           "alignment": "left"
         }
       },
       "layers": {
-        "print_layer": "印刷内容层",
-        "laser_blue": "激光雕刻-底色层（蓝色）",
-        "laser_white": "激光雕刻-文字层（白色）"
+        "print_layer": "Print content layer",
+        "laser_blue": "Laser engraving - background layer (blue)",
+        "laser_white": "Laser engraving - text layer (white)"
       },
       "export_profiles": {
         "print_pdf": {
@@ -97,15 +97,15 @@
         }
       }
     },
-    "S05303_公寓门牌": {
-      "file": "templates/S05303/公寓门牌.cdr",
-      "description": "S05303 公寓项目门牌，304#砂钢拉丝，Gotham Narrow Light，含盲文珠，工程图标题栏",
-      "material": "304# 砂钢",
-      "finish": "拉丝",
+    "S05303_apartment_door_sign": {
+      "file": "templates/S05303/apartment_door_sign.cdr",
+      "description": "S05303 apartment project door sign, 304# sanded steel, brushed, Gotham Narrow Light, with braille dots, engineering drawing title block",
+      "material": "304# sanded steel",
+      "finish": "Brushed",
       "width_mm": 50.8,
       "height_mm": 152.4,
       "size_variants": {
-        "rule": "按房间号字符数确定页面宽度，高度固定 152.4mm（6英寸）",
+        "rule": "Page width is determined by the number of characters in the room number; height is fixed at 152.4mm (6 inches)",
         "variants": [
           {"char_count": 2, "width_mm": 50.8, "width_in": 2.0, "example": "3A, 5B, 1C"},
           {"char_count": 3, "width_mm": 76.2, "width_in": 3.0, "example": "10A, 12B, 100C"}
@@ -115,7 +115,7 @@
         "room_number": {
           "type": "text",
           "max_chars": 3,
-          "desc": "房间号（2字符如3A，或3字符如10A），字符数决定页面宽度",
+          "desc": "Room number (2 characters such as 3A, or 3 characters such as 10A); the character count determines the page width",
           "default_font": "Gotham Narrow Light",
           "default_size": 48,
           "alignment": "center"
@@ -123,24 +123,24 @@
         "braille_text": {
           "type": "text",
           "max_chars": 3,
-          "desc": "盲文对应文字（通常与 room_number 相同），盲文珠由工厂按此内容排布",
+          "desc": "Text represented in braille (usually the same as room_number); the factory lays out the braille dots from this content",
           "default_font": "Gotham Narrow Light",
           "default_size": 8,
           "alignment": "center"
         }
       },
       "layers": {
-        "print_layer": "印刷/标刻内容层（文字+图案）",
-        "laser_engrave": "激光雕刻层",
-        "laser_cut": "激光切割轮廓层",
-        "braille_layer": "盲文珠打孔定位层",
-        "dimension_layer": "工程标注层（1:1尺寸线）"
+        "print_layer": "Print/marking content layer (text + graphics)",
+        "laser_engrave": "Laser engraving layer",
+        "laser_cut": "Laser cutting outline layer",
+        "braille_layer": "Braille dot drilling position layer",
+        "dimension_layer": "Engineering dimension layer (1:1 dimension lines)"
       },
       "braille": {
-        "position": "门牌下方居中",
+        "position": "Centered below the door sign",
         "dot_diameter_mm": 1.5,
         "dot_spacing_mm": 2.5,
-        "note": "盲文珠由工厂人工装配，CDR 文件中仅标注打孔位置"
+        "note": "Braille dots are assembled by hand at the factory; the CDR file only marks the drilling positions"
       },
       "export_profiles": {
         "engineering_pdf": {
@@ -154,43 +154,43 @@
         }
       },
       "title_block_fields": {
-        "project_name": "项目名称（如：S05303 公寓门牌）",
-        "order_no": "订单号",
-        "part_no": "产品料号",
-        "designer": "设计人",
-        "material": "材质（默认：304# 砂钢）",
-        "finish": "表面处理（默认：拉丝）",
-        "scale": "比例（默认：1:1）",
-        "sheet_no": "图纸编号",
-        "revision": "版本号"
+        "project_name": "Project name (e.g. S05303 apartment door sign)",
+        "order_no": "Order number",
+        "part_no": "Part number",
+        "designer": "Designer",
+        "material": "Material (default: 304# sanded steel)",
+        "finish": "Surface finish (default: brushed)",
+        "scale": "Scale (default: 1:1)",
+        "sheet_no": "Drawing number",
+        "revision": "Revision"
       }
     },
-    "导向标识_400x200_箭头": {
-      "file": "templates/导向标识_400x200_箭头.cdr",
-      "description": "导向标识牌，400×200mm，含方向箭头",
+    "wayfinding_400x200_arrow": {
+      "file": "templates/wayfinding_400x200_arrow.cdr",
+      "description": "Wayfinding sign, 400×200mm, with direction arrow",
       "width_mm": 400,
       "height_mm": 200,
       "placeholders": {
         "placeholder_location": {
           "type": "text",
           "max_chars": 8,
-          "desc": "位置名称（如：会议室）",
-          "default_font": "微软雅黑",
+          "desc": "Location name (e.g. Meeting Room)",
+          "default_font": "Microsoft YaHei",
           "default_size": 42,
           "alignment": "center"
         },
         "placeholder_direction": {
           "type": "text",
           "max_chars": 8,
-          "desc": "方向说明（如：直行50m）",
-          "default_font": "微软雅黑",
+          "desc": "Direction text (e.g. Straight 50m)",
+          "default_font": "Microsoft YaHei",
           "default_size": 16,
           "alignment": "center"
         }
       },
       "layers": {
-        "print_layer": "印刷内容层",
-        "laser_cut": "激光切割层"
+        "print_layer": "Print content layer",
+        "laser_cut": "Laser cutting layer"
       },
       "export_profiles": {
         "print_pdf": {
