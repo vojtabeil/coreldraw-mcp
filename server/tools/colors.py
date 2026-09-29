@@ -1,4 +1,4 @@
-"""颜色与填充工具 — CMYK/RGB/Pantone 填充、描边、颜色检查"""
+"""Color and fill tools — CMYK/RGB/Pantone fills, outlines, color checks"""
 
 from core.connection import get_connection
 from core.models import ToolResult
@@ -8,7 +8,7 @@ _FILL_MAP = {"cmyk": 0, "rgb": 1, "pantone": 2}
 
 
 def _find_shape(shape_id: str):
-    """按名称或 StaticID 查找形状"""
+    """Find a shape by name or StaticID"""
     conn = get_connection()
     doc = conn.app.ActiveDocument
     if not doc:
@@ -31,21 +31,21 @@ def _find_shape(shape_id: str):
 
 
 def set_fill_cmyk(c: float, m: float, y: float, k: float, shape_id: str = "") -> ToolResult:
-    """设置形状的 CMYK 填充色。shape_id 为空时作用于选中形状。"""
+    """Set a CMYK fill color on a shape. If shape_id is empty, applies to the selected shapes."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _fill():
         if shape_id:
             shape = _find_shape(shape_id)
             if shape is None:
-                raise ValueError(f"未找到形状: {shape_id}")
+                raise ValueError(f"Shape not found: {shape_id}")
             shape.Fill.UniformColor.CMYKAssign(c, m, y, k)
         else:
             sel = conn.app.ActiveDocument.Selection
             if not sel or sel.Shapes.Count == 0:
-                raise RuntimeError("没有选中的形状，请指定 shape_id 或先选中形状")
+                raise RuntimeError("No shapes selected; specify shape_id or select shapes first")
             for s in sel.Shapes:
                 try:
                     s.Fill.UniformColor.CMYKAssign(c, m, y, k)
@@ -55,26 +55,26 @@ def set_fill_cmyk(c: float, m: float, y: float, k: float, shape_id: str = "") ->
 
     result = conn.safe_call(_fill)
     if result["success"]:
-        return ToolResult.ok(f"CMYK 填充: C{c} M{m} Y{y} K{k}", **result["result"])
-    return ToolResult.fail(result.get("error", "设置 CMYK 填充失败"))
+        return ToolResult.ok(f"CMYK fill: C{c} M{m} Y{y} K{k}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set CMYK fill"))
 
 
 def set_fill_rgb(r: int, g: int, b: int, shape_id: str = "") -> ToolResult:
-    """设置形状的 RGB 填充色。"""
+    """Set an RGB fill color on a shape. If shape_id is empty, applies to the selected shapes."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _fill():
         if shape_id:
             shape = _find_shape(shape_id)
             if shape is None:
-                raise ValueError(f"未找到形状: {shape_id}")
+                raise ValueError(f"Shape not found: {shape_id}")
             shape.Fill.UniformColor.RGBAssign(r, g, b)
         else:
             sel = conn.app.ActiveDocument.Selection
             if not sel or sel.Shapes.Count == 0:
-                raise RuntimeError("没有选中的形状")
+                raise RuntimeError("No shapes selected")
             for s in sel.Shapes:
                 try:
                     s.Fill.UniformColor.RGBAssign(r, g, b)
@@ -84,22 +84,22 @@ def set_fill_rgb(r: int, g: int, b: int, shape_id: str = "") -> ToolResult:
 
     result = conn.safe_call(_fill)
     if result["success"]:
-        return ToolResult.ok(f"RGB 填充: ({r}, {g}, {b})", **result["result"])
-    return ToolResult.fail(result.get("error", "设置 RGB 填充失败"))
+        return ToolResult.ok(f"RGB fill: ({r}, {g}, {b})", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set RGB fill"))
 
 
 def set_fill_pantone(shape_id: str, pantone_code: str) -> ToolResult:
-    """设置形状的 Pantone 专色填充。pantone_code 如 '485 C'。"""
+    """Set a Pantone spot color fill on a shape. pantone_code e.g. '485 C'."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _fill():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
-        # Pantone 填充需要通过 Color 对象的 FindPantone 或类似方法
-        # 尝试用 NamedColor 或通过 Application 的 Pantone 查找
+            raise ValueError(f"Shape not found: {shape_id}")
+        # Pantone fill requires the Color object's FindPantone or a similar method
+        # Try NamedColor or a Pantone lookup via the Application
         try:
             pantone_color = conn.app.CreateRGBColor(0, 0, 0)
             pantone_color.FindPantone(pantone_code)
@@ -110,25 +110,26 @@ def set_fill_pantone(shape_id: str, pantone_code: str) -> ToolResult:
                 color.FindPantone(pantone_code)
                 shape.Fill.ApplyUniformFill(color)
             except Exception:
-                raise RuntimeError(f"无法应用 Pantone 色: {pantone_code}")
+                raise RuntimeError(f"Unable to apply Pantone color: {pantone_code}")
         return {"shape_id": shape_id, "pantone": pantone_code}
 
     result = conn.safe_call(_fill)
     if result["success"]:
-        return ToolResult.ok(f"Pantone 填充: {pantone_code}", **result["result"])
-    return ToolResult.fail(result.get("error", "设置 Pantone 填充失败"))
+        return ToolResult.ok(f"Pantone fill: {pantone_code}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set Pantone fill"))
 
 
 def set_outline(shape_id: str, width: float, color: str = "", color_mode: str = "CMYK") -> ToolResult:
-    """设置形状的描边宽度和颜色。color 格式: CMYK 如 '0,100,100,0'，RGB 如 '255,0,0'。"""
+    """Set a shape's outline width (mm) and color. color format: CMYK e.g. '0,100,100,0', RGB e.g. '255,0,0'.
+    color_mode: CMYK (default) or RGB. Empty color keeps the current outline color."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _outline():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         shape.Outline.Width = width
         if color:
             parts = [float(x.strip()) for x in color.split(",")]
@@ -142,26 +143,26 @@ def set_outline(shape_id: str, width: float, color: str = "", color_mode: str = 
 
     result = conn.safe_call(_outline)
     if result["success"]:
-        return ToolResult.ok(f"描边: {width}mm, color={color or '保持原色'}", **result["result"])
-    return ToolResult.fail(result.get("error", "设置描边失败"))
+        return ToolResult.ok(f"Outline: {width}mm, color={color or 'unchanged'}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set outline"))
 
 
 def set_no_fill(shape_id: str = "") -> ToolResult:
-    """移除形状的填充（设为镂空）。"""
+    """Remove a shape's fill (make it hollow). If shape_id is empty, applies to the selected shapes."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _no_fill():
         if shape_id:
             shape = _find_shape(shape_id)
             if shape is None:
-                raise ValueError(f"未找到形状: {shape_id}")
+                raise ValueError(f"Shape not found: {shape_id}")
             shape.Fill.ApplyNoFill()
         else:
             sel = conn.app.ActiveDocument.Selection
             if not sel or sel.Shapes.Count == 0:
-                raise RuntimeError("没有选中的形状")
+                raise RuntimeError("No shapes selected")
             for s in sel.Shapes:
                 try:
                     s.Fill.ApplyNoFill()
@@ -171,26 +172,26 @@ def set_no_fill(shape_id: str = "") -> ToolResult:
 
     result = conn.safe_call(_no_fill)
     if result["success"]:
-        return ToolResult.ok("已移除填充", **result["result"])
-    return ToolResult.fail(result.get("error", "移除填充失败"))
+        return ToolResult.ok("Fill removed", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to remove fill"))
 
 
 def set_no_outline(shape_id: str = "") -> ToolResult:
-    """移除形状的描边。"""
+    """Remove a shape's outline. If shape_id is empty, applies to the selected shapes."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _no_outline():
         if shape_id:
             shape = _find_shape(shape_id)
             if shape is None:
-                raise ValueError(f"未找到形状: {shape_id}")
+                raise ValueError(f"Shape not found: {shape_id}")
             shape.Outline.SetNoOutline()
         else:
             sel = conn.app.ActiveDocument.Selection
             if not sel or sel.Shapes.Count == 0:
-                raise RuntimeError("没有选中的形状")
+                raise RuntimeError("No shapes selected")
             for s in sel.Shapes:
                 try:
                     s.Outline.SetNoOutline()
@@ -200,20 +201,20 @@ def set_no_outline(shape_id: str = "") -> ToolResult:
 
     result = conn.safe_call(_no_outline)
     if result["success"]:
-        return ToolResult.ok("已移除描边", **result["result"])
-    return ToolResult.fail(result.get("error", "移除描边失败"))
+        return ToolResult.ok("Outline removed", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to remove outline"))
 
 
 def check_rgb_colors() -> ToolResult:
-    """检测文档中的 RGB 颜色（印前检查用，印刷需转 CMYK）。"""
+    """Detect RGB colors in the document (for preflight; print output requires CMYK)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _check():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         page = doc.ActivePage
         rgb_items = []
         try:
@@ -252,9 +253,9 @@ def check_rgb_colors() -> ToolResult:
     if result["success"]:
         r = result["result"]
         if r["passed"]:
-            return ToolResult.ok("未发现 RGB 颜色，可安全印刷", **r)
-        return ToolResult.ok(f"发现 {r['found']} 处 RGB 颜色，建议转为 CMYK", **r)
-    return ToolResult.fail(result.get("error", "RGB 检查失败"))
+            return ToolResult.ok("No RGB colors found, safe to print", **r)
+        return ToolResult.ok(f"Found {r['found']} RGB color(s), converting to CMYK is recommended", **r)
+    return ToolResult.fail(result.get("error", "RGB check failed"))
 
 
 def set_fountain_fill(
@@ -264,20 +265,21 @@ def set_fountain_fill(
     c2: float, m2: float, y2: float, k2: float,
     angle: float = 45.0
 ) -> ToolResult:
-    """设置形状的渐变填充。fill_type: linear/radial/conical/square，颜色为 CMYK。"""
+    """Set a fountain fill (gradient) on a shape. fill_type: linear/radial/conical/square.
+    Start (c1, m1, y1, k1) and end (c2, m2, y2, k2) colors are CMYK. angle in degrees (default 45)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _fill():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         # CorelDRAW fountain fill constants: linear=1, radial=2, conical=3, square=4.
         type_map = {"linear": 1, "radial": 2, "conical": 3, "square": 4}
         ftype = type_map.get(fill_type.lower())
         if ftype is None:
-            raise ValueError(f"无效的渐变类型: {fill_type}，支持 linear/radial/conical/square")
+            raise ValueError(f"Invalid fountain fill type: {fill_type}, supported: linear/radial/conical/square")
         start_color = conn.app.CreateCMYKColor(c1, m1, y1, k1)
         end_color = conn.app.CreateCMYKColor(c2, m2, y2, k2)
         shape.Fill.ApplyFountainFill(start_color, end_color, ftype, angle)
@@ -291,27 +293,27 @@ def set_fountain_fill(
 
     result = conn.safe_call(_fill)
     if result["success"]:
-        return ToolResult.ok(f"渐变填充: {fill_type}, C{c1}M{y1}Y{y1}K{k1} → C{c2}M{m2}Y{y2}K{k2}", **result["result"])
-    return ToolResult.fail(result.get("error", "设置渐变填充失败"))
+        return ToolResult.ok(f"Fountain fill: {fill_type}, C{c1}M{y1}Y{y1}K{k1} → C{c2}M{m2}Y{y2}K{k2}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set fountain fill"))
 
 
 def set_transparency(shape_id: str, opacity: float) -> ToolResult:
-    """设置形状的透明度。opacity: 0-100，0 为完全透明，100 为不透明。"""
+    """Set a shape's transparency. opacity: 0-100, 0 = fully transparent, 100 = opaque."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _transparency():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         if opacity < 0 or opacity > 100:
-            raise ValueError("opacity 必须在 0-100 之间")
+            raise ValueError("opacity must be between 0 and 100")
         transparency = int(round(100 - opacity))
         shape.Transparency.ApplyUniformTransparency(transparency)
         return {"shape_id": shape_id, "opacity": opacity}
 
     result = conn.safe_call(_transparency)
     if result["success"]:
-        return ToolResult.ok(f"透明度: {opacity}%", **result["result"])
-    return ToolResult.fail(result.get("error", "设置透明度失败"))
+        return ToolResult.ok(f"Transparency: opacity {opacity}%", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set transparency"))

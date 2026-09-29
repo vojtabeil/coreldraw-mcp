@@ -199,10 +199,10 @@ def close_connection() -> None:
 
 
 def import_file(app: Any, doc: Any, path: str) -> None:
-    """导入文件到当前图层。Import 属于 Layer 而非 Document，且可选参数必须显式传入。"""
+    """Import a file into the current layer. Import belongs to Layer, not Document, and optional arguments must be passed explicitly."""
     doc.ActiveLayer.ImportEx(path, 0, app.CreateStructImportOptions()).Finish()
 
 
 def save_document_as(app: Any, doc: Any, path: str) -> None:
-    """另存为。SaveAs 的 Options 参数必须显式传入，省略会导致 COM 参数转换失败。"""
+    """Save As. The SaveAs Options argument must be passed explicitly; omitting it makes COM argument conversion fail."""
     doc.SaveAs(path, app.CreateStructSaveAsOptions())

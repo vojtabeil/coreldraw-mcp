@@ -1,4 +1,4 @@
-"""模板管理工具 — 列出可用模板、查询尺寸变体规则"""
+"""Template tools - list available templates, query size variant rules"""
 
 import json
 import os
@@ -14,12 +14,13 @@ def _load_registry() -> dict:
 
 
 def list_templates(filter_material: str = "", filter_keyword: str = "") -> ToolResult:
-    """列出所有可用模板。filter_material 按材质过滤，filter_keyword 按名称/描述关键字过滤。
-    返回每个模板的名称、描述、尺寸、占位符列表、是否有尺寸变体规则。"""
+    """List all available templates. filter_material filters by material; filter_keyword filters by a keyword
+    in the name/description. Returns each template's name, description, size, placeholder list, and whether it
+    has size variant rules."""
     try:
         registry = _load_registry()
     except Exception as e:
-        return ToolResult.fail(f"无法读取模板库配置: {e}")
+        return ToolResult.fail(f"Cannot read template registry config: {e}")
 
     templates = registry.get("templates", {})
     result = []
@@ -47,43 +48,43 @@ def list_templates(filter_material: str = "", filter_keyword: str = "") -> ToolR
         result.append(entry)
 
     return ToolResult.ok(
-        f"找到 {len(result)} 个模板",
+        f"Found {len(result)} templates",
         total=len(result),
         templates=result,
     )
 
 
 def get_template_info(template_name: str) -> ToolResult:
-    """获取指定模板的完整配置，包括占位符详情、图层说明、尺寸变体规则和标题栏字段。"""
+    """Get the full config of a template, including placeholder details, layer descriptions, size variant rules and title block fields."""
     try:
         registry = _load_registry()
     except Exception as e:
-        return ToolResult.fail(f"无法读取模板库配置: {e}")
+        return ToolResult.fail(f"Cannot read template registry config: {e}")
 
     templates = registry.get("templates", {})
     if template_name not in templates:
         available = list(templates.keys())
-        return ToolResult.fail(f"模板 '{template_name}' 不存在，可用模板: {available}")
+        return ToolResult.fail(f"Template '{template_name}' does not exist, available templates: {available}")
 
     cfg = templates[template_name]
-    return ToolResult.ok(f"模板信息: {template_name}", name=template_name, **cfg)
+    return ToolResult.ok(f"Template info: {template_name}", name=template_name, **cfg)
 
 
 def get_size_variant(template_name: str, room_number: str) -> ToolResult:
-    """根据房间号字符数查询对应的页面尺寸变体。用于自动决定门牌宽度。"""
+    """Look up the page size variant for the number of characters in the room number. Used to automatically determine the door sign width."""
     try:
         registry = _load_registry()
     except Exception as e:
-        return ToolResult.fail(f"无法读取模板库配置: {e}")
+        return ToolResult.fail(f"Cannot read template registry config: {e}")
 
     templates = registry.get("templates", {})
     if template_name not in templates:
-        return ToolResult.fail(f"模板 '{template_name}' 不存在")
+        return ToolResult.fail(f"Template '{template_name}' does not exist")
 
     cfg = templates[template_name]
     if "size_variants" not in cfg:
         return ToolResult.ok(
-            "此模板无尺寸变体规则，使用默认尺寸",
+            "This template has no size variant rules; using default size",
             width_mm=cfg.get("width_mm"),
             height_mm=cfg.get("height_mm"),
             variant_matched=False,
@@ -94,7 +95,7 @@ def get_size_variant(template_name: str, room_number: str) -> ToolResult:
     for v in variants:
         if v.get("char_count") == char_count:
             return ToolResult.ok(
-                f"房间号 '{room_number}'（{char_count}字符）→ 宽度 {v['width_mm']}mm",
+                f"Room number '{room_number}' ({char_count} chars) → width {v['width_mm']}mm",
                 width_mm=v["width_mm"],
                 height_mm=cfg.get("height_mm"),
                 width_in=v.get("width_in"),
@@ -104,7 +105,7 @@ def get_size_variant(template_name: str, room_number: str) -> ToolResult:
             )
 
     return ToolResult.ok(
-        f"房间号 '{room_number}'（{char_count}字符）无匹配变体，使用默认尺寸",
+        f"Room number '{room_number}' ({char_count} chars) has no matching variant; using default size",
         width_mm=cfg.get("width_mm"),
         height_mm=cfg.get("height_mm"),
         char_count=char_count,

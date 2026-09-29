@@ -1,4 +1,4 @@
-"""数据合并工具 — Excel 数据读取、批量数据合并、条码/QR 码生成"""
+"""Data merge tools — Excel data reading, batch merge, barcode/QR code generation"""
 
 import os
 import tempfile
@@ -8,14 +8,15 @@ from core.models import ToolResult
 
 
 def read_excel_data(path: str, sheet: int = 0, has_header: bool = True) -> ToolResult:
-    """读取 Excel 数据源，返回行数据列表。sheet 为工作表索引（0-based）。"""
+    """Read an Excel data source (.xlsx/.xls/.csv) and return a list of row records.
+    sheet is the worksheet index (0-based). has_header: the first row contains column names."""
     try:
         import pandas as pd
     except ImportError:
-        return ToolResult.fail("pandas 未安装，请执行 pip install pandas openpyxl xlrd")
+        return ToolResult.fail("pandas is not installed, run: pip install pandas openpyxl xlrd")
 
     if not os.path.isfile(path):
-        return ToolResult.fail(f"文件不存在: {path}")
+        return ToolResult.fail(f"File does not exist: {path}")
 
     try:
         ext = os.path.splitext(path)[1].lower()
@@ -26,7 +27,7 @@ def read_excel_data(path: str, sheet: int = 0, has_header: bool = True) -> ToolR
         elif ext == ".csv":
             df = pd.read_csv(path)
         else:
-            return ToolResult.fail(f"不支持的文件格式: {ext}，支持 .xlsx/.xls/.csv")
+            return ToolResult.fail(f"Unsupported file format: {ext}, supported: .xlsx/.xls/.csv")
 
         if has_header:
             records = df.to_dict(orient="records")
@@ -34,7 +35,7 @@ def read_excel_data(path: str, sheet: int = 0, has_header: bool = True) -> ToolR
             df.columns = [f"col_{i}" for i in range(len(df.columns))]
             records = df.to_dict(orient="records")
 
-        # 将 NaN 等转为 None
+        # Convert NaN etc. to None
         clean_records = []
         for r in records:
             clean = {}
@@ -46,7 +47,7 @@ def read_excel_data(path: str, sheet: int = 0, has_header: bool = True) -> ToolR
             clean_records.append(clean)
 
         return ToolResult.ok(
-            f"读取成功: {len(clean_records)} 条记录",
+            f"Read succeeded: {len(clean_records)} records",
             path=path,
             sheet=sheet,
             total=len(clean_records),
@@ -54,14 +55,15 @@ def read_excel_data(path: str, sheet: int = 0, has_header: bool = True) -> ToolR
             columns=list(df.columns),
         )
     except Exception as e:
-        return ToolResult.fail(f"读取 Excel 失败: {e}")
+        return ToolResult.fail(f"Failed to read Excel: {e}")
 
 
 def merge_record(template_path: str, data: dict, output_path: str) -> ToolResult:
-    """单条数据合并：打开模板，按 data 字典替换占位符，保存到 output_path。data key 对应占位符名称。"""
+    """Merge a single record: open the template, replace placeholders from the data dict, save to output_path.
+    data keys correspond to placeholder (text shape) names."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _merge():
         doc = conn.app.OpenDocument(template_path)
@@ -90,22 +92,22 @@ def merge_record(template_path: str, data: dict, output_path: str) -> ToolResult
     result = conn.safe_call(_merge)
     if result["success"]:
         cnt = len(result["result"]["replaced"])
-        return ToolResult.ok(f"合并完成: {cnt} 处替换 → {output_path}", **result["result"])
-    return ToolResult.fail(result.get("error", "数据合并失败"))
+        return ToolResult.ok(f"Merge finished: {cnt} replacement(s) → {output_path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Data merge failed"))
 
 
 def batch_merge(template_path: str, data_path: str, output_dir: str, naming_pattern: str = "{room}") -> ToolResult:
-    """批量数据合并：从 Excel 读取数据，逐条生成文件。naming_pattern 支持 {col_name} 占位符。"""
+    """Batch merge: read data from Excel and generate one file per record. naming_pattern supports {col_name} placeholders."""
     from core.connection import get_connection
 
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
-    # 先读取数据
+    # Read the data first
     read_result = read_excel_data(data_path)
     if not read_result.success:
-        return ToolResult.fail(read_result.error or "读取数据源失败")
+        return ToolResult.fail(read_result.error or "Failed to read data source")
 
     records = read_result.data["records"]
     os.makedirs(output_dir, exist_ok=True)
@@ -131,7 +133,7 @@ def batch_merge(template_path: str, data_path: str, output_dir: str, naming_patt
 
     succeeded = sum(1 for r in results if r["success"])
     return ToolResult.ok(
-        f"批量合并完成: {succeeded}/{len(results)} 成功",
+        f"Batch merge finished: {succeeded}/{len(results)} succeeded",
         output_dir=output_dir,
         total=len(results),
         succeeded=succeeded,
@@ -141,21 +143,22 @@ def batch_merge(template_path: str, data_path: str, output_dir: str, naming_patt
 
 
 def generate_barcode(barcode_type: str, data: str, x: float, y: float, width: float, height: float) -> ToolResult:
-    """生成条码并导入到 CorelDRAW。type 支持 code128/ean13/code39。"""
+    """Generate a barcode and import it into CorelDRAW. barcode_type: code128/ean13/code39.
+    x, y: position; width, height: size."""
     try:
         import barcode
         from barcode.writer import SVGWriter
     except ImportError:
-        return ToolResult.fail("python-barcode 未安装，请执行 pip install python-barcode")
+        return ToolResult.fail("python-barcode is not installed, run: pip install python-barcode")
 
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _generate():
         type_map = {"code128": "code128", "ean13": "ean13", "code39": "code39"}
         if barcode_type not in type_map:
-            raise ValueError(f"不支持的条码类型: {barcode_type}，可选: {', '.join(type_map.keys())}")
+            raise ValueError(f"Unsupported barcode type: {barcode_type}, options: {', '.join(type_map.keys())}")
 
         bc_class = barcode.get_barcode_class(barcode_type)
         bc = bc_class(data, writer=SVGWriter())
@@ -184,7 +187,7 @@ def generate_barcode(barcode_type: str, data: str, x: float, y: float, width: fl
                         "width": width,
                         "height": height,
                     }
-            raise RuntimeError("条码 SVG 生成失败")
+            raise RuntimeError("Barcode SVG generation failed")
         finally:
             for f in [svg_path, svg_path.replace(".svg", "") + ".svg"]:
                 try:
@@ -194,21 +197,21 @@ def generate_barcode(barcode_type: str, data: str, x: float, y: float, width: fl
 
     result = conn.safe_call(_generate)
     if result["success"]:
-        return ToolResult.ok(f"条码已生成: {barcode_type} - {data}", **result["result"])
-    return ToolResult.fail(result.get("error", "生成条码失败"))
+        return ToolResult.ok(f"Barcode generated: {barcode_type} - {data}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to generate barcode"))
 
 
 def generate_qrcode(data: str, x: float, y: float, size: float) -> ToolResult:
-    """生成 QR Code 并导入到 CorelDRAW。"""
+    """Generate a QR code and import it into CorelDRAW. x, y: position; size: side length."""
     try:
         import qrcode
         import qrcode.image.svg
     except ImportError:
-        return ToolResult.fail("qrcode 未安装，请执行 pip install qrcode[pil]")
+        return ToolResult.fail("qrcode is not installed, run: pip install qrcode[pil]")
 
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _generate():
         factory = qrcode.image.svg.SvgImage
@@ -238,7 +241,7 @@ def generate_qrcode(data: str, x: float, y: float, size: float) -> ToolResult:
                     "y": y,
                     "size": size,
                 }
-            raise RuntimeError("QR Code 导入失败")
+            raise RuntimeError("QR code import failed")
         finally:
             try:
                 os.remove(svg_path)
@@ -247,5 +250,5 @@ def generate_qrcode(data: str, x: float, y: float, size: float) -> ToolResult:
 
     result = conn.safe_call(_generate)
     if result["success"]:
-        return ToolResult.ok(f"QR Code 已生成: {data[:30]}...", **result["result"])
-    return ToolResult.fail(result.get("error", "生成 QR Code 失败"))
+        return ToolResult.ok(f"QR code generated: {data[:30]}...", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to generate QR code"))

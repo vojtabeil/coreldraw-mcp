@@ -1,15 +1,15 @@
-"""Pydantic 数据模型定义"""
+"""Pydantic data model definitions"""
 
 from typing import Optional, List, Literal, Dict, Any
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 
 
-# ========== 枚举定义 ==========
+# ========== Enums ==========
 
 
 class Unit(str, Enum):
-    """尺寸单位"""
+    """Dimension unit"""
     MM = "mm"
     CM = "cm"
     INCH = "inch"
@@ -18,7 +18,7 @@ class Unit(str, Enum):
 
 
 class ColorMode(str, Enum):
-    """颜色模式"""
+    """Color mode"""
     CMYK = "CMYK"
     RGB = "RGB"
     PANTONE = "Pantone"
@@ -26,7 +26,7 @@ class ColorMode(str, Enum):
 
 
 class ExportFormat(str, Enum):
-    """导出格式"""
+    """Export format"""
     PDF = "pdf"
     DXF = "dxf"
     AI = "ai"
@@ -36,18 +36,18 @@ class ExportFormat(str, Enum):
 
 
 class BooleanOp(str, Enum):
-    """布尔运算类型"""
+    """Boolean operation type"""
     UNION = "union"
     INTERSECT = "intersect"
     SUBTRACT = "subtract"
     EXCLUDE = "exclude"
 
 
-# ========== 文档相关模型 ==========
+# ========== Document models ==========
 
 
 class DocumentInfo(BaseModel):
-    """文档信息"""
+    """Document info"""
     name: Optional[str] = None
     path: Optional[str] = None
     pages: int = 1
@@ -58,7 +58,7 @@ class DocumentInfo(BaseModel):
 
 
 class PageInfo(BaseModel):
-    """页面信息"""
+    """Page info"""
     index: int
     name: Optional[str] = None
     width: float
@@ -67,34 +67,34 @@ class PageInfo(BaseModel):
 
 
 class SizeInput(BaseModel):
-    """尺寸输入"""
-    width: float = Field(..., gt=0, description="宽度")
-    height: float = Field(..., gt=0, description="高度")
-    unit: Unit = Field(default=Unit.MM, description="单位")
+    """Size input"""
+    width: float = Field(..., gt=0, description="Width")
+    height: float = Field(..., gt=0, description="Height")
+    unit: Unit = Field(default=Unit.MM, description="Unit")
 
 
-# ========== 形状相关模型 ==========
+# ========== Shape models ==========
 
 
 class RectangleInput(BaseModel):
-    """矩形创建输入"""
-    x: float = Field(..., description="X 坐标")
-    y: float = Field(..., description="Y 坐标")
-    width: float = Field(..., gt=0, description="宽度")
-    height: float = Field(..., gt=0, description="高度")
-    corner_radius: Optional[float] = Field(default=0, ge=0, description="圆角半径")
+    """Rectangle creation input"""
+    x: float = Field(..., description="X coordinate")
+    y: float = Field(..., description="Y coordinate")
+    width: float = Field(..., gt=0, description="Width")
+    height: float = Field(..., gt=0, description="Height")
+    corner_radius: Optional[float] = Field(default=0, ge=0, description="Corner radius")
 
 
 class EllipseInput(BaseModel):
-    """椭圆创建输入"""
-    cx: float = Field(..., description="中心 X 坐标")
-    cy: float = Field(..., description="中心 Y 坐标")
-    rx: float = Field(..., gt=0, description="X 轴半径")
-    ry: float = Field(..., gt=0, description="Y 轴半径")
+    """Ellipse creation input"""
+    cx: float = Field(..., description="Center X coordinate")
+    cy: float = Field(..., description="Center Y coordinate")
+    rx: float = Field(..., gt=0, description="X-axis radius")
+    ry: float = Field(..., gt=0, description="Y-axis radius")
 
 
 class LineInput(BaseModel):
-    """直线创建输入"""
+    """Line creation input"""
     x1: float
     y1: float
     x2: float
@@ -102,58 +102,58 @@ class LineInput(BaseModel):
 
 
 class ShapeQuery(BaseModel):
-    """形状查询"""
-    name: Optional[str] = Field(None, description="按名称查找")
-    layer: Optional[str] = Field(None, description="按图层查找")
-    type: Optional[str] = Field(None, description="按类型查找")
+    """Shape query"""
+    name: Optional[str] = Field(None, description="Find by name")
+    layer: Optional[str] = Field(None, description="Find by layer")
+    type: Optional[str] = Field(None, description="Find by type")
 
 
-# ========== 文字相关模型 ==========
+# ========== Text models ==========
 
 
 class TextStyle(BaseModel):
-    """文字样式"""
-    font: Optional[str] = Field(None, description="字体名称")
-    size: Optional[float] = Field(None, gt=0, description="字号")
-    bold: Optional[bool] = Field(None, description="粗体")
-    italic: Optional[bool] = Field(None, description="斜体")
-    color: Optional[str] = Field(None, description="颜色（CMYK 或 RGB）")
-    alignment: Optional[Literal["left", "center", "right"]] = Field(None, description="对齐")
-    line_spacing: Optional[float] = Field(None, gt=0, description="行距")
-    char_spacing: Optional[float] = Field(None, ge=0, description="字间距")
+    """Text style"""
+    font: Optional[str] = Field(None, description="Font name")
+    size: Optional[float] = Field(None, gt=0, description="Font size")
+    bold: Optional[bool] = Field(None, description="Bold")
+    italic: Optional[bool] = Field(None, description="Italic")
+    color: Optional[str] = Field(None, description="Color (CMYK or RGB)")
+    alignment: Optional[Literal["left", "center", "right"]] = Field(None, description="Alignment")
+    line_spacing: Optional[float] = Field(None, gt=0, description="Line spacing")
+    char_spacing: Optional[float] = Field(None, ge=0, description="Character spacing")
 
 
 class TextContentUpdate(BaseModel):
-    """文字内容更新"""
-    shape_id: str = Field(..., description="形状 ID 或名称")
-    content: str = Field(..., description="新文字内容")
+    """Text content update"""
+    shape_id: str = Field(..., description="Shape ID or name")
+    content: str = Field(..., description="New text content")
 
 
-# ========== 颜色相关模型 ==========
+# ========== Color models ==========
 
 
 class CMYKColor(BaseModel):
-    """CMYK 颜色"""
-    c: float = Field(..., ge=0, le=100, description="青色 0-100")
-    m: float = Field(..., ge=0, le=100, description="品红 0-100")
-    y: float = Field(..., ge=0, le=100, description="黄色 0-100")
-    k: float = Field(..., ge=0, le=100, description="黑色 0-100")
+    """CMYK color"""
+    c: float = Field(..., ge=0, le=100, description="Cyan 0-100")
+    m: float = Field(..., ge=0, le=100, description="Magenta 0-100")
+    y: float = Field(..., ge=0, le=100, description="Yellow 0-100")
+    k: float = Field(..., ge=0, le=100, description="Black 0-100")
 
 
 class RGBColor(BaseModel):
-    """RGB 颜色"""
-    r: int = Field(..., ge=0, le=255, description="红色 0-255")
-    g: int = Field(..., ge=0, le=255, description="绿色 0-255")
-    b: int = Field(..., ge=0, le=255, description="蓝色 0-255")
+    """RGB color"""
+    r: int = Field(..., ge=0, le=255, description="Red 0-255")
+    g: int = Field(..., ge=0, le=255, description="Green 0-255")
+    b: int = Field(..., ge=0, le=255, description="Blue 0-255")
 
 
 class PantoneColor(BaseModel):
-    """Pantone 专色"""
-    code: str = Field(..., min_length=1, description="Pantone 色号，如 '485 C'")
+    """Pantone spot color"""
+    code: str = Field(..., min_length=1, description="Pantone color code, e.g. '485 C'")
 
 
 class FillUpdate(BaseModel):
-    """填充更新"""
+    """Fill update"""
     shape_id: str
     cmyk: Optional[CMYKColor] = None
     rgb: Optional[RGBColor] = None
@@ -162,121 +162,121 @@ class FillUpdate(BaseModel):
 
 
 class OutlineUpdate(BaseModel):
-    """描边更新"""
+    """Outline update"""
     shape_id: str
-    width: float = Field(..., ge=0, description="描边宽度")
+    width: float = Field(..., ge=0, description="Outline width")
     color_mode: ColorMode = ColorMode.CMYK
     color: Optional[str] = None
     no_outline: bool = False
 
 
-# ========== 图层相关模型 ==========
+# ========== Layer models ==========
 
 
 class LayerInfo(BaseModel):
-    """图层信息"""
+    """Layer info"""
     name: str
     visible: bool = True
     locked: bool = False
-    color: Optional[str] = Field(None, description="图层颜色标识")
+    color: Optional[str] = Field(None, description="Layer color tag")
 
 
 class LayerAssign(BaseModel):
-    """图层分配"""
+    """Layer assignment"""
     shape_id: str
     layer_name: str
 
 
-# ========== 导出相关模型 ==========
+# ========== Export models ==========
 
 
 class PDFExportOptions(BaseModel):
-    """PDF 导出选项"""
-    color_profile: str = Field(default="ISO_Coated_v2", description="色彩配置文件")
-    bleed: float = Field(default=3.0, ge=0, description="出血 mm")
-    crop_marks: bool = Field(default=True, description="是否包含裁切线")
+    """PDF export options"""
+    color_profile: str = Field(default="ISO_Coated_v2", description="Color profile")
+    bleed: float = Field(default=3.0, ge=0, description="Bleed in mm")
+    crop_marks: bool = Field(default=True, description="Whether to include crop marks")
     compression: Literal["none", "jpeg", "zip"] = "zip"
-    multi_page: bool = Field(default=False, description="是否多页导出")
+    multi_page: bool = Field(default=False, description="Whether to export multiple pages")
 
 
 class DXFExportOptions(BaseModel):
-    """DXF 导出选项"""
+    """DXF export options"""
     version: Literal["R12", "R14", "R2000", "R2004"] = Field(default="R14")
-    layer_filter: Optional[List[str]] = Field(None, description="导出的图层列表")
-    export_hidden: bool = Field(default=False, description="是否导出隐藏图层")
+    layer_filter: Optional[List[str]] = Field(None, description="List of layers to export")
+    export_hidden: bool = Field(default=False, description="Whether to export hidden layers")
 
 
 class PNGExportOptions(BaseModel):
-    """PNG 导出选项"""
-    dpi: int = Field(default=300, ge=72, description="分辨率")
+    """PNG export options"""
+    dpi: int = Field(default=300, ge=72, description="Resolution (DPI)")
     color_mode: ColorMode = ColorMode.RGB
-    width: Optional[int] = Field(None, ge=100, description="输出宽度（px）")
+    width: Optional[int] = Field(None, ge=100, description="Output width (px)")
     background_transparent: bool = Field(default=False)
 
 
-# ========== 质检相关模型 ==========
+# ========== Preflight models ==========
 
 
 class DimensionCheck(BaseModel):
-    """尺寸校验请求"""
+    """Dimension check request"""
     expected_width: float
     expected_height: float
-    tolerance: float = Field(default=0.5, ge=0, description="容差 mm")
+    tolerance: float = Field(default=0.5, ge=0, description="Tolerance in mm")
 
 
 class ColorReport(BaseModel):
-    """色彩报告"""
-    rgb_colors: List[Dict[str, Any]] = Field(default_factory=list, description="发现的 RGB 颜色")
-    pantone_colors: List[str] = Field(default_factory=list, description="使用的 Pantone 色号")
-    spot_colors: List[str] = Field(default_factory=list, description="使用的专色")
+    """Color report"""
+    rgb_colors: List[Dict[str, Any]] = Field(default_factory=list, description="RGB colors found")
+    pantone_colors: List[str] = Field(default_factory=list, description="Pantone color codes used")
+    spot_colors: List[str] = Field(default_factory=list, description="Spot colors used")
 
 
 class QualityCheckResult(BaseModel):
-    """质检结果"""
+    """Preflight result"""
     passed: bool
     issues: List[str] = Field(default_factory=list)
     details: Optional[Dict[str, Any]] = None
 
 
-# ========== 数据合并相关模型 ==========
+# ========== Data merge models ==========
 
 
 class DataSourceConfig(BaseModel):
-    """数据源配置"""
+    """Data source config"""
     path: str
-    sheet: Optional[int] = Field(default=0, description="工作表索引")
-    has_header: bool = Field(default=True, description="是否有表头")
+    sheet: Optional[int] = Field(default=0, description="Worksheet index")
+    has_header: bool = Field(default=True, description="Whether the data has a header row")
 
 
 class MergeRecord(BaseModel):
-    """单条合并记录"""
+    """Single merge record"""
     template_path: str
     data: Dict[str, str]
     output_path: str
 
 
 class BatchMergeConfig(BaseModel):
-    """批量合并配置"""
+    """Batch merge config"""
     template_path: str
     data_path: str
     output_dir: str
-    naming_pattern: str = Field(default="{room}", description="输出文件命名模式")
+    naming_pattern: str = Field(default="{room}", description="Output file naming pattern")
 
 
-# ========== 条码相关模型 ==========
+# ========== Barcode models ==========
 
 
 class BarcodeSpec(BaseModel):
-    """条码规格"""
-    type: Literal["code128", "ean13", "code39", "qr"] = Field(..., description="条码类型")
+    """Barcode spec"""
+    type: Literal["code128", "ean13", "code39", "qr"] = Field(..., description="Barcode type")
     data: str = Field(..., min_length=1)
-    x: float = Field(..., description="X 坐标")
-    y: float = Field(..., description="Y 坐标")
-    width: float = Field(..., gt=0, description="宽度")
-    height: float = Field(..., gt=0, description="高度")
+    x: float = Field(..., description="X coordinate")
+    y: float = Field(..., description="Y coordinate")
+    width: float = Field(..., gt=0, description="Width")
+    height: float = Field(..., gt=0, description="Height")
 
 
-# ========== 工具返回结果模型 ==========
+# ========== Tool result model ==========
 
 
 class ToolResult(BaseModel):
@@ -294,11 +294,11 @@ class ToolResult(BaseModel):
         return cls(success=False, error=err, message=msg)
 
 
-# ========== 工具上下文 ==========
+# ========== Tool context ==========
 
 
 class ToolContext(BaseModel):
-    """工具调用上下文（自动注入）"""
+    """Tool call context (injected automatically)"""
     session_id: Optional[str] = None
     request_id: Optional[str] = None
     timestamp: Optional[str] = None

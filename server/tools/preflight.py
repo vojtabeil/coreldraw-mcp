@@ -1,4 +1,4 @@
-"""印前质检工具 — 尺寸校验、文字溢出、缺失字体、色彩报告"""
+"""Preflight tools — dimension check, text overflow, missing fonts, color report"""
 
 from core.connection import get_connection
 from core.models import ToolResult
@@ -9,15 +9,15 @@ _CDR_MILLIMETER = 3
 
 
 def check_dimensions(expected_width: float, expected_height: float, tolerance: float = 0.5) -> ToolResult:
-    """校验当前页面尺寸是否在容差范围内。"""
+    """Check whether the current page size (mm) matches the expected size within the tolerance (mm)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _check():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         doc.Unit = _CDR_MILLIMETER
         page = doc.ActivePage
         actual_w = page.SizeWidth
@@ -37,21 +37,21 @@ def check_dimensions(expected_width: float, expected_height: float, tolerance: f
     result = conn.safe_call(_check)
     if result["success"]:
         if result["result"]["passed"]:
-            return ToolResult.ok("尺寸校验通过", **result["result"])
-        return ToolResult.ok("尺寸校验未通过", **result["result"])
-    return ToolResult.fail(result.get("error", "尺寸校验失败"))
+            return ToolResult.ok("Dimension check passed", **result["result"])
+        return ToolResult.ok("Dimension check failed", **result["result"])
+    return ToolResult.fail(result.get("error", "Dimension check error"))
 
 
 def check_text_overflow_all() -> ToolResult:
-    """检查全文档所有文字形状的溢出状态。返回所有溢出的文字列表。"""
+    """Check all text shapes in the document for text overflow. Returns the list of overflowing text."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _check():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         page = doc.ActivePage
         overflow_items = []
         total_text = 0
@@ -95,23 +95,23 @@ def check_text_overflow_all() -> ToolResult:
     if result["success"]:
         r = result["result"]
         if r["passed"]:
-            return ToolResult.ok(f"所有 {r['total_text_shapes']} 处文字正常，无溢出", **r)
-        return ToolResult.ok(f"发现 {r['overflow_count']} 处文字溢出", **r)
-    return ToolResult.fail(result.get("error", "文字溢出检查失败"))
+            return ToolResult.ok(f"All {r['total_text_shapes']} text shapes OK, no overflow", **r)
+        return ToolResult.ok(f"Found {r['overflow_count']} text overflow(s)", **r)
+    return ToolResult.fail(result.get("error", "Text overflow check failed"))
 
 
 def check_missing_fonts() -> ToolResult:
-    """检查文档是否使用了系统中缺失的字体。"""
+    """Check whether the document uses fonts that are missing from the system (missing fonts)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _check():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
 
-        # 优先从 CorelDRAW Fonts 集合获取可用字体列表（最可靠）
+        # Prefer getting the available font list from the CorelDRAW Fonts collection (most reliable)
         available_fonts: set[str] = set()
         use_font_list = False
         try:
@@ -131,7 +131,7 @@ def check_missing_fonts() -> ToolResult:
             for s in page.Shapes:
                 if s.Type != _CDR_TEXT_SHAPE:
                     continue
-                # 收集形状使用的字体（字符级优先，形状级 fallback）
+                # Collect fonts used by the shape (character level first, shape level fallback)
                 shape_fonts: set[str] = set()
                 try:
                     chars = s.Text.Characters
@@ -152,11 +152,11 @@ def check_missing_fonts() -> ToolResult:
                     if not font_name:
                         continue
                     if use_font_list:
-                        # 与 Fonts 集合比对，无需创建测试形状
+                        # Compare against the Fonts collection, no test shape needed
                         if font_name.lower() not in available_fonts:
                             missing_fonts.add(font_name)
                     else:
-                        # fallback：创建测试形状后读回实际字体名，检测是否被静默替换
+                        # fallback: create a test shape and read back the actual font name to detect silent substitution
                         try:
                             test = page.ActiveLayer.CreateArtisticText(0, 0, "T", Font=font_name)
                             actual = test.Text.FontProperties.Name
@@ -175,21 +175,21 @@ def check_missing_fonts() -> ToolResult:
     if result["success"]:
         r = result["result"]
         if r["passed"]:
-            return ToolResult.ok("所有字体均已安装", **r)
-        return ToolResult.ok(f"发现 {r['count']} 个缺失字体", **r)
-    return ToolResult.fail(result.get("error", "字体检查失败"))
+            return ToolResult.ok("All fonts are installed", **r)
+        return ToolResult.ok(f"Found {r['count']} missing font(s)", **r)
+    return ToolResult.fail(result.get("error", "Font check failed"))
 
 
 def check_rgb_colors() -> ToolResult:
-    """检查文档中的 RGB 颜色（印前检查 — 印刷需转为 CMYK）。"""
+    """Check the document for RGB colors (preflight — print requires conversion to CMYK)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _check():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         page = doc.ActivePage
         rgb_items = []
         try:
@@ -230,21 +230,21 @@ def check_rgb_colors() -> ToolResult:
     if result["success"]:
         r = result["result"]
         if r["passed"]:
-            return ToolResult.ok("未发现 RGB 颜色，可安全印刷", **r)
-        return ToolResult.ok(f"发现 {r['count']} 处 RGB 颜色", **r)
-    return ToolResult.fail(result.get("error", "RGB 检查失败"))
+            return ToolResult.ok("No RGB colors found, safe to print", **r)
+        return ToolResult.ok(f"Found {r['count']} RGB color(s)", **r)
+    return ToolResult.fail(result.get("error", "RGB check failed"))
 
 
 def get_color_report() -> ToolResult:
-    """生成全文档的色彩报告：使用的 CMYK、RGB、Pantone、专色列表。"""
+    """Generate a color report for the document: lists of CMYK, RGB, Pantone and spot colors used."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _report():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         page = doc.ActivePage
         rgb_colors = set()
         cmyk_colors = set()
@@ -283,6 +283,6 @@ def get_color_report() -> ToolResult:
     result = conn.safe_call(_report)
     if result["success"]:
         r = result["result"]
-        return ToolResult.ok(f"色彩报告: {r['total_shapes']}个形状, CMYK={len(r['cmyk_colors'])}, "
+        return ToolResult.ok(f"Color report: {r['total_shapes']} shapes, CMYK={len(r['cmyk_colors'])}, "
                              f"RGB={len(r['rgb_colors'])}, Pantone={len(r['pantone_colors'])}", **r)
-    return ToolResult.fail(result.get("error", "获取色彩报告失败"))
+    return ToolResult.fail(result.get("error", "Failed to get color report"))

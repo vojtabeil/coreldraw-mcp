@@ -123,19 +123,19 @@ def register_tools():
 
 def main():
     setup_logging()
-    logger.info("启动 CorelDRAW Signage MCP Server...")
+    logger.info("Starting CorelDRAW Signage MCP Server...")
 
     if init_connection():
-        logger.info("CorelDRAW 连接成功")
+        logger.info("Connected to CorelDRAW")
     else:
-        logger.warning("CorelDRAW 连接失败，服务器将启动但功能受限")
+        logger.warning("Failed to connect to CorelDRAW; server will start with limited functionality")
 
     register_tools()
-    logger.info("工具注册完成")
+    logger.info("Tools registered")
 
     if _MCP_TRANSPORT != "stdio":
-        logger.info(f"HTTP 模式启动，监听 http://{_MCP_HOST}:{_MCP_PORT}/mcp")
-        logger.info("本地 Claude/OpenCode 可通过 .mcp.json 中的 url 连接")
+        logger.info(f"Starting in HTTP mode, listening on http://{_MCP_HOST}:{_MCP_PORT}/mcp")
+        logger.info("Local Claude/OpenCode can connect via the url in .mcp.json")
 
     try:
         if _MCP_TRANSPORT != "stdio":
@@ -144,7 +144,7 @@ def main():
             mcp.run(transport=_MCP_TRANSPORT)
     finally:
         close_connection()
-        logger.info("MCP Server 已关闭")
+        logger.info("MCP Server stopped")
 
 
 if __name__ == "__main__":

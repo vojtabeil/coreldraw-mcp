@@ -1,11 +1,11 @@
-"""导出工具 — PDF/DXF/AI/SVG/PNG 导出，预览 PNG 及批量导出"""
+"""Export tools — PDF/DXF/AI/SVG/PNG export, preview PNG and batch export"""
 
 import os
 
 from core.connection import get_connection
 from core.models import ToolResult
 
-# 导出滤镜常量（CorelDRAW X6/16.1 COM 滤镜编号）
+# Export filter constants (CorelDRAW X6/16.1 COM filter IDs)
 _CDR_DXF = 1296
 _CDR_AI = 1305
 _CDR_SVG = 1345
@@ -24,14 +24,14 @@ _DXF_VERSION = {"R12": 0, "R14": 1, "R2000": 3, "R2004": 4}
 
 
 def _ensure_dir(path: str) -> None:
-    """确保输出目录存在"""
+    """Ensure the output directory exists"""
     dirpath = os.path.dirname(path)
     if dirpath and not os.path.isdir(dirpath):
         os.makedirs(dirpath, exist_ok=True)
 
 
 def _page_size_mm(doc):
-    """获取页面尺寸（mm）"""
+    """Get the page size (mm)"""
     try:
         doc.Unit = _CDR_MILLIMETER
         page = doc.ActivePage
@@ -84,7 +84,7 @@ def _file_size(path: str) -> int:
 def _verify_exported(path: str) -> int:
     size = _file_size(path)
     if size <= 0:
-        raise RuntimeError(f"导出失败，文件未生成或为空: {path}")
+        raise RuntimeError(f"Export failed, file was not created or is empty: {path}")
     return size
 
 
@@ -106,15 +106,16 @@ def export_pdf(
     multi_page: bool = False,
     pdfx_version: str = "",
 ) -> ToolResult:
-    """导出印刷级 PDF。支持色彩配置、出血、裁切线和多页导出。可选 PDF/X 标准。"""
+    """Export a print-ready PDF. Supports color profile, bleed (mm), crop marks and multi-page export.
+    Optional PDF/X standard via pdfx_version (PDFX1a/PDFX3/PDFX4)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         try:
@@ -141,7 +142,7 @@ def export_pdf(
                         pass
         except Exception:
             pass
-        # 尝试加载 ICC Profile（CorelDRAW 版本间 API 名称不同，逐一尝试）
+        # Try to load the ICC profile (the API name differs between CorelDRAW versions, try each)
         if color_profile:
             for attr in ("ColorProfileName", "ColorProfile", "OutputColorProfile", "ICCProfileName"):
                 try:
@@ -163,22 +164,23 @@ def export_pdf(
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"PDF 已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 PDF 失败"))
+        return ToolResult.ok(f"PDF exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export PDF"))
 
 
 def export_dxf(path: str, version: str = "R14", layer_filter: str = "", export_hidden: bool = False) -> ToolResult:
-    """导出 DXF 文件（用于激光雕刻/切割）。支持版本选择和图层过滤。"""
+    """Export a DXF file (for laser engraving/cutting). version: R12/R14/R2000/R2004 (default R14).
+    layer_filter: comma-separated layer names to export."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     dxf_ver = _DXF_VERSION.get(version, 1)
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         # Try ExportEx (newer CorelDRAW). X6 often rejects this with COM object error;
@@ -212,20 +214,20 @@ def export_dxf(path: str, version: str = "R14", layer_filter: str = "", export_h
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"DXF 已导出: {path} (v{version})", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 DXF 失败"))
+        return ToolResult.ok(f"DXF exported: {path} (v{version})", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export DXF"))
 
 
 def export_ai(path: str) -> ToolResult:
-    """导出 Adobe Illustrator AI 格式。"""
+    """Export to Adobe Illustrator AI format."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         doc.Export(path, _CDR_AI, _CDR_CURRENT_PAGE, None, None)
@@ -234,20 +236,20 @@ def export_ai(path: str) -> ToolResult:
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"AI 已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 AI 失败"))
+        return ToolResult.ok(f"AI exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export AI"))
 
 
 def export_svg(path: str) -> ToolResult:
-    """导出 SVG 矢量格式。"""
+    """Export to SVG vector format."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         doc.Export(path, _CDR_SVG, _CDR_CURRENT_PAGE, None, None)
@@ -256,20 +258,21 @@ def export_svg(path: str) -> ToolResult:
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"SVG 已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 SVG 失败"))
+        return ToolResult.ok(f"SVG exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export SVG"))
 
 
 def export_png(path: str, dpi: int = 300, width: int = 0, background_transparent: bool = False) -> ToolResult:
-    """导出 PNG 位图。可指定 DPI、宽度和透明背景。"""
+    """Export a PNG bitmap. Optional DPI (default 300), width in pixels (overrides DPI if > 0)
+    and transparent background."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         page_w_mm, page_h_mm = _page_size_mm(doc)
@@ -327,20 +330,20 @@ def export_png(path: str, dpi: int = 300, width: int = 0, background_transparent
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"PNG 已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 PNG 失败"))
+        return ToolResult.ok(f"PNG exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export PNG"))
 
 
 def export_jpeg(path: str, quality: int = 85, dpi: int = 300) -> ToolResult:
-    """导出 JPEG 位图。可指定压缩质量(0-100)和分辨率。"""
+    """Export a JPEG bitmap. Optional compression quality (0-100, default 85) and resolution in dpi (default 300)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         page_w_mm, page_h_mm = _page_size_mm(doc)
@@ -399,20 +402,20 @@ def export_jpeg(path: str, quality: int = 85, dpi: int = 300) -> ToolResult:
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"JPEG 已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出 JPEG 失败"))
+        return ToolResult.ok(f"JPEG exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export JPEG"))
 
 
 def export_preview_png(path: str, width: int = 800) -> ToolResult:
-    """导出低分辨率 PNG 预览图，供 AI Agent 进行视觉检查。width 为像素宽度。"""
+    """Export a low-resolution PNG preview for visual inspection by the AI agent. width is in pixels."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _export():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(path)
         shapes_count = _prepare_current_page_export(doc)
         page_w_mm, page_h_mm = _page_size_mm(doc)
@@ -470,22 +473,22 @@ def export_preview_png(path: str, width: int = 800) -> ToolResult:
 
     result = conn.safe_call(_export)
     if result["success"]:
-        return ToolResult.ok(f"预览图已导出: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导出预览图失败"))
+        return ToolResult.ok(f"Preview exported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to export preview"))
 
 
 def batch_export(pages: str, format: str, output_dir: str) -> ToolResult:
-    """批量导出指定页面。pages 为 "1,2,3" 或 "1-5" 或 "all"，format 支持 pdf/dxf/png。"""
+    """Batch export the given pages. pages: "1,2,3", "1-5" or "all". format: pdf/dxf/png/svg."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     format = format.lower()
 
     def _batch():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         _ensure_dir(os.path.join(output_dir, "dummy.txt"))
 
         all_pages = list(doc.Pages)
@@ -502,7 +505,7 @@ def batch_export(pages: str, format: str, output_dir: str) -> ToolResult:
                     selected_pages.append(p)
 
         results = []
-        doc_name = doc.FileName or "未命名"
+        doc_name = doc.FileName or "Untitled"
         base = os.path.splitext(doc_name)[0] if doc_name else "output"
 
         for page in selected_pages:
@@ -559,7 +562,7 @@ def batch_export(pages: str, format: str, output_dir: str) -> ToolResult:
                 elif format == "svg":
                     doc.Export(out_path, _CDR_SVG, _CDR_CURRENT_PAGE, None, None)
                 else:
-                    raise ValueError(f"不支持的导出格式: {format}")
+                    raise ValueError(f"Unsupported export format: {format}")
                 _verify_exported(out_path)
                 results.append({"page": page.Index, "path": out_path, "status": "success"})
             except Exception as e:
@@ -571,5 +574,5 @@ def batch_export(pages: str, format: str, output_dir: str) -> ToolResult:
     if result["success"]:
         r = result["result"]
         succeeded = sum(1 for x in r["results"] if x["status"] == "success")
-        return ToolResult.ok(f"批量导出完成: {succeeded}/{r['total']} 成功", **r)
-    return ToolResult.fail(result.get("error", "批量导出失败"))
+        return ToolResult.ok(f"Batch export finished: {succeeded}/{r['total']} succeeded", **r)
+    return ToolResult.fail(result.get("error", "Batch export failed"))

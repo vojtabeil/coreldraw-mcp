@@ -1,4 +1,4 @@
-"""图形操作工具 — 创建/查找/修改形状，布尔运算，导入素材，对齐/分布/层级/旋转/缩放"""
+"""Shape tools - create/find/modify shapes, boolean operations, asset import, align/distribute/z-order/rotate/scale"""
 
 from core.connection import get_connection, import_file
 from core.models import ToolResult
@@ -31,7 +31,7 @@ def _create_shape_range(shapes):
 
 
 def _find_shape(shape_id: str):
-    """按名称或 StaticID 查找形状。返回 Shape 对象或 None。"""
+    """Find a shape by name or StaticID. Returns the Shape object or None."""
     conn = get_connection()
     doc = conn.app.ActiveDocument
     if not doc:
@@ -39,12 +39,12 @@ def _find_shape(shape_id: str):
     try:
         page = doc.ActivePage
         shapes = page.Shapes
-        # 先尝试按名称查找
+        # Try lookup by name first
         try:
             return shapes(shape_id)
         except Exception:
             pass
-        # 遍历匹配
+        # Iterate and match
         for s in shapes:
             if _shape_matches(s, shape_id):
                 return s
@@ -54,7 +54,7 @@ def _find_shape(shape_id: str):
 
 
 def _shape_info(shape) -> dict:
-    """提取形状信息"""
+    """Extract shape info"""
     try:
         info = {
             "name": shape.Name if shape.Name else "",
@@ -73,10 +73,10 @@ def _shape_info(shape) -> dict:
 
 
 def create_rectangle(x: float, y: float, width: float, height: float, corner_radius: float = 0) -> ToolResult:
-    """创建矩形。x,y 为左上角坐标，支持圆角（corner_radius）。"""
+    """Create a rectangle. x,y are the top-left corner coordinates; supports rounded corners (corner_radius)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _create():
         layer = conn.app.ActiveDocument.ActivePage.ActiveLayer
@@ -87,15 +87,15 @@ def create_rectangle(x: float, y: float, width: float, height: float, corner_rad
 
     result = conn.safe_call(_create)
     if result["success"]:
-        return ToolResult.ok(f"矩形创建成功: {width}×{height}", **result["result"])
-    return ToolResult.fail(result.get("error", "创建矩形失败"))
+        return ToolResult.ok(f"Rectangle created: {width}×{height}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to create rectangle"))
 
 
 def create_ellipse(cx: float, cy: float, rx: float, ry: float) -> ToolResult:
-    """创建椭圆。cx,cy 为中心坐标，rx,ry 为 X/Y 半径。"""
+    """Create an ellipse. cx,cy are the center coordinates; rx,ry are the X/Y radii."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _create():
         layer = conn.app.ActiveDocument.ActivePage.ActiveLayer
@@ -109,15 +109,15 @@ def create_ellipse(cx: float, cy: float, rx: float, ry: float) -> ToolResult:
 
     result = conn.safe_call(_create)
     if result["success"]:
-        return ToolResult.ok(f"椭圆创建成功: rx={rx}, ry={ry}", **result["result"])
-    return ToolResult.fail(result.get("error", "创建椭圆失败"))
+        return ToolResult.ok(f"Ellipse created: rx={rx}, ry={ry}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to create ellipse"))
 
 
 def create_line(x1: float, y1: float, x2: float, y2: float) -> ToolResult:
-    """创建直线段。"""
+    """Create a straight line segment."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _create():
         layer = conn.app.ActiveDocument.ActivePage.ActiveLayer
@@ -127,20 +127,20 @@ def create_line(x1: float, y1: float, x2: float, y2: float) -> ToolResult:
 
     result = conn.safe_call(_create)
     if result["success"]:
-        return ToolResult.ok("直线创建成功", **result["result"])
-    return ToolResult.fail(result.get("error", "创建直线失败"))
+        return ToolResult.ok("Line created", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to create line"))
 
 
 def import_svg(path: str, x: float = 0, y: float = 0) -> ToolResult:
-    """导入 SVG 文件到当前文档。返回导入的形状信息。"""
+    """Import an SVG file into the current document. Returns info about the imported shape."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _import():
         import os
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"SVG 文件不存在: {path}")
+            raise FileNotFoundError(f"SVG file does not exist: {path}")
         doc = conn.app.ActiveDocument
         import_file(conn.app, doc, path)
         if x != 0 or y != 0:
@@ -156,20 +156,20 @@ def import_svg(path: str, x: float = 0, y: float = 0) -> ToolResult:
 
     result = conn.safe_call(_import)
     if result["success"]:
-        return ToolResult.ok(f"SVG 已导入: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导入 SVG 失败"))
+        return ToolResult.ok(f"SVG imported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to import SVG"))
 
 
 def import_image(path: str, x: float = 0, y: float = 0, width: float = 0, height: float = 0) -> ToolResult:
-    """导入位图到当前文档。可指定位置和尺寸。"""
+    """Import a bitmap into the current document. Position and size can be specified."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _import():
         import os
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"图片文件不存在: {path}")
+            raise FileNotFoundError(f"Image file does not exist: {path}")
         doc = conn.app.ActiveDocument
         import_file(conn.app, doc, path)
         try:
@@ -187,70 +187,70 @@ def import_image(path: str, x: float = 0, y: float = 0, width: float = 0, height
 
     result = conn.safe_call(_import)
     if result["success"]:
-        return ToolResult.ok(f"图片已导入: {path}", **result["result"])
-    return ToolResult.fail(result.get("error", "导入图片失败"))
+        return ToolResult.ok(f"Image imported: {path}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to import image"))
 
 
 def set_shape_size(shape_id: str, width: float, height: float) -> ToolResult:
-    """设置形状的精确尺寸（mm）。"""
+    """Set the exact size of a shape (mm)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _set():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         shape.SetSize(width, height)
         return {"shape_id": shape_id, "width": width, "height": height}
 
     result = conn.safe_call(_set)
     if result["success"]:
-        return ToolResult.ok(f"形状尺寸已设为: {width}×{height} mm", **result["result"])
-    return ToolResult.fail(result.get("error", "设置尺寸失败"))
+        return ToolResult.ok(f"Shape size set to: {width}×{height} mm", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set size"))
 
 
 def set_shape_position(shape_id: str, x: float, y: float) -> ToolResult:
-    """设置形状的位置（mm）。"""
+    """Set the position of a shape (mm)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _set():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         shape.SetPosition(x, y)
         return {"shape_id": shape_id, "x": x, "y": y}
 
     result = conn.safe_call(_set)
     if result["success"]:
-        return ToolResult.ok(f"形状移至: ({x}, {y})", **result["result"])
-    return ToolResult.fail(result.get("error", "设置位置失败"))
+        return ToolResult.ok(f"Shape moved to: ({x}, {y})", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set position"))
 
 
 _BOOLEAN_OPS = {"union": "Weld", "intersect": "Intersect", "subtract": "Trim", "exclude": "Simplify"}
 
 
 def boolean_operation(shape_ids: str, operation: str) -> ToolResult:
-    """对指定形状执行布尔运算。shape_ids 为逗号分隔的 ID 列表，operation 支持 union/intersect/subtract/exclude。"""
+    """Perform a boolean operation on the given shapes. shape_ids is a comma-separated list of IDs; operation supports union/intersect/subtract/exclude."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     if operation not in _BOOLEAN_OPS:
-        return ToolResult.fail(f"不支持的布尔运算: {operation}，可选: {', '.join(_BOOLEAN_OPS.keys())}")
+        return ToolResult.fail(f"Unsupported boolean operation: {operation}, options: {', '.join(_BOOLEAN_OPS.keys())}")
 
     def _operate():
         ids = [s.strip() for s in shape_ids.split(",") if s.strip()]
         if len(ids) < 2:
-            raise ValueError("至少需要两个形状进行布尔运算")
+            raise ValueError("A boolean operation requires at least two shapes")
         page = conn.app.ActiveDocument.ActivePage
         selected = []
         for sid in ids:
             shape = _find_shape(sid)
             if shape is None:
-                raise ValueError(f"未找到形状: {sid}")
+                raise ValueError(f"Shape not found: {sid}")
             selected.append(shape)
         selection = _create_shape_range(selected)
         method = getattr(selection, _BOOLEAN_OPS[operation])
@@ -259,60 +259,60 @@ def boolean_operation(shape_ids: str, operation: str) -> ToolResult:
 
     result = conn.safe_call(_operate)
     if result["success"]:
-        return ToolResult.ok(f"布尔运算完成: {operation}", **result["result"])
-    return ToolResult.fail(result.get("error", "布尔运算失败"))
+        return ToolResult.ok(f"Boolean operation done: {operation}", **result["result"])
+    return ToolResult.fail(result.get("error", "Boolean operation failed"))
 
 
 def convert_to_curves(shape_id: str) -> ToolResult:
-    """将形状转换为曲线（印前必须操作）。"""
+    """Convert a shape to curves (required step before print production)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _convert():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         shape.ConvertToCurves()
         return {"shape_id": shape_id, "converted": True}
 
     result = conn.safe_call(_convert)
     if result["success"]:
-        return ToolResult.ok(f"已转曲: {shape_id}", **result["result"])
-    return ToolResult.fail(result.get("error", "转曲失败"))
+        return ToolResult.ok(f"Converted to curves: {shape_id}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to convert to curves"))
 
 
 def group_shapes(shape_ids: str) -> ToolResult:
-    """将多个形状组合为一个群组。shape_ids 为逗号分隔的 ID 列表。"""
+    """Group multiple shapes into one group. shape_ids is a comma-separated list of IDs."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _group():
         ids = [s.strip() for s in shape_ids.split(",") if s.strip()]
         if len(ids) < 2:
-            raise ValueError("至少需要两个形状才能组合")
+            raise ValueError("Grouping requires at least two shapes")
         page = conn.app.ActiveDocument.ActivePage
         selected = []
         for sid in ids:
             shape = _find_shape(sid)
             if shape is None:
-                raise ValueError(f"未找到形状: {sid}")
+                raise ValueError(f"Shape not found: {sid}")
             selected.append(shape)
         group = _create_shape_range(selected).Group()
         return {"group_id": _static_id(group), "member_count": len(ids), "member_ids": ids}
 
     result = conn.safe_call(_group)
     if result["success"]:
-        return ToolResult.ok(f"已组合 {result['result']['member_count']} 个形状", **result["result"])
-    return ToolResult.fail(result.get("error", "组合失败"))
+        return ToolResult.ok(f"Grouped {result['result']['member_count']} shapes", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to group"))
 
 
 def find_shape_by_name(name: str) -> ToolResult:
-    """按名称查找形状。返回形状的 ID、类型、尺寸等。"""
+    """Find a shape by name. Returns the shape's ID, type, size, etc."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _find():
         shape = _find_shape(name)
@@ -323,12 +323,12 @@ def find_shape_by_name(name: str) -> ToolResult:
     result = conn.safe_call(_find)
     if result["success"]:
         if result["result"]["found"]:
-            return ToolResult.ok(f"找到形状: {name}", **result["result"])
-        return ToolResult.ok(f"未找到形状: {name}", **result["result"])
-    return ToolResult.fail(result.get("error", "查找形状失败"))
+            return ToolResult.ok(f"Shape found: {name}", **result["result"])
+        return ToolResult.ok(f"Shape not found: {name}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to find shape"))
 
 
-# ========== P0 排版必需品 ==========
+# ========== P0 layout essentials ==========
 
 _ALIGN_DIRECTIONS = {"left", "center", "right", "top", "middle", "bottom"}
 _Z_ORDER_ACTIONS = {"front", "back", "forward", "backward"}
@@ -336,7 +336,7 @@ _CDR_MILLIMETER = 3
 
 
 def _get_shape_bounds(shape):
-    """获取形状的边界信息（位置 + 尺寸），用于对齐/分布计算。返回 dict 或 None。"""
+    """Get a shape's bounds (position + size) for align/distribute calculations. Returns a dict or None."""
     try:
         x = shape.PositionX
         y = shape.PositionY
@@ -352,7 +352,7 @@ def _get_shape_bounds(shape):
 
 
 def _get_page_size(doc):
-    """获取当前页面的宽度和高度（mm）。"""
+    """Get the width and height of the current page (mm)."""
     try:
         doc.Unit = _CDR_MILLIMETER
         page = doc.ActivePage
@@ -362,31 +362,31 @@ def _get_page_size(doc):
 
 
 def align_shapes(shape_ids: str, alignment: str, reference: str = "selection") -> ToolResult:
-    """将多个形状对齐。alignment: left/center/right/top/middle/bottom。
-    reference='selection' 在形状间对齐，reference='page' 对齐到页面边缘。
-    shape_ids 为逗号分隔的形状 ID 或名称列表。"""
+    """Align multiple shapes. alignment: left/center/right/top/middle/bottom.
+    reference='selection' aligns the shapes to each other; reference='page' aligns them to the page edges.
+    shape_ids is a comma-separated list of shape IDs or names."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     alignment = alignment.lower()
     if alignment not in _ALIGN_DIRECTIONS:
-        return ToolResult.fail(f"不支持的对齐方式: {alignment}，可选: {', '.join(sorted(_ALIGN_DIRECTIONS))}")
+        return ToolResult.fail(f"Unsupported alignment: {alignment}, options: {', '.join(sorted(_ALIGN_DIRECTIONS))}")
 
     def _align():
         ids = [s.strip() for s in shape_ids.split(",") if s.strip()]
         if not ids:
-            raise ValueError("请提供至少一个形状 ID")
+            raise ValueError("Please provide at least one shape ID")
 
         shapes = []
         bounds = []
         for sid in ids:
             shape = _find_shape(sid)
             if shape is None:
-                raise ValueError(f"未找到形状: {sid}")
+                raise ValueError(f"Shape not found: {sid}")
             b = _get_shape_bounds(shape)
             if b is None:
-                raise ValueError(f"无法读取形状 {sid} 的位置信息")
+                raise ValueError(f"Cannot read position info of shape {sid}")
             shapes.append(shape)
             bounds.append(b)
 
@@ -408,9 +408,9 @@ def align_shapes(shape_ids: str, alignment: str, reference: str = "selection") -
                 elif alignment == "bottom":
                     shape.SetPosition(b["x"], page_h - b["h"])
         else:
-            # selection 模式：以第一个形状为基准对齐其他形状
+            # selection mode: align the other shapes to the first shape
             if len(shapes) < 2:
-                raise ValueError("selection 模式至少需要两个形状（或使用 reference='page'）")
+                raise ValueError("selection mode requires at least two shapes (or use reference='page')")
             ref_bounds = bounds[0]
             for shape, b in zip(shapes[1:], bounds[1:]):
                 if alignment == "left":
@@ -432,49 +432,49 @@ def align_shapes(shape_ids: str, alignment: str, reference: str = "selection") -
 
     result = conn.safe_call(_align)
     if result["success"]:
-        return ToolResult.ok(f"对齐完成: {alignment} ({reference})", **result["result"])
-    return ToolResult.fail(result.get("error", "对齐失败"))
+        return ToolResult.ok(f"Alignment done: {alignment} ({reference})", **result["result"])
+    return ToolResult.fail(result.get("error", "Alignment failed"))
 
 
 def distribute_shapes(shape_ids: str, direction: str = "horizontal", spacing: float = 0) -> ToolResult:
-    """将多个形状等距分布。direction: horizontal/vertical。spacing>0 时使用固定间距，
-    否则在最小和最大边界之间均匀分布。shape_ids 为逗号分隔。"""
+    """Distribute multiple shapes evenly. direction: horizontal/vertical. If spacing>0, a fixed spacing is used;
+    otherwise shapes are spread evenly between the minimum and maximum bounds. shape_ids is comma-separated."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     direction = direction.lower()
     if direction not in ("horizontal", "vertical"):
-        return ToolResult.fail("direction 仅支持 'horizontal' 或 'vertical'")
+        return ToolResult.fail("direction only supports 'horizontal' or 'vertical'")
 
     def _distribute():
         ids = [s.strip() for s in shape_ids.split(",") if s.strip()]
         if len(ids) < 3:
-            raise ValueError("分布至少需要三个形状")
+            raise ValueError("Distribution requires at least three shapes")
 
         shapes = []
         bounds = []
         for sid in ids:
             shape = _find_shape(sid)
             if shape is None:
-                raise ValueError(f"未找到形状: {sid}")
+                raise ValueError(f"Shape not found: {sid}")
             b = _get_shape_bounds(shape)
             if b is None:
-                raise ValueError(f"无法读取形状 {sid} 的位置信息")
+                raise ValueError(f"Cannot read position info of shape {sid}")
             shapes.append(shape)
             bounds.append(b)
 
         if direction == "horizontal":
-            # 按 X 排序
+            # Sort by X
             pairs = sorted(zip(shapes, bounds), key=lambda p: p[1]["x"])
             if spacing > 0:
-                # 固定间距，以第一个为起点
+                # Fixed spacing, starting from the first shape
                 ref_x = pairs[0][1]["x"]
                 for i, (shape, b) in enumerate(pairs):
                     new_x = ref_x + i * spacing
                     shape.SetPosition(new_x, b["y"])
             else:
-                # 均匀分布：总跨度 / (n-1)
+                # Even distribution: total span / (n-1)
                 min_x = pairs[0][1]["x"]
                 max_x = pairs[-1][1]["x"] + pairs[-1][1]["w"]
                 total_span = max_x - min_x
@@ -486,7 +486,7 @@ def distribute_shapes(shape_ids: str, direction: str = "horizontal", spacing: fl
                     target_center_x = min_x + (i + 1) * step - b["w"] / 2
                     shape.SetPosition(target_center_x, b["y"])
         else:
-            # 按 Y 排序
+            # Sort by Y
             pairs = sorted(zip(shapes, bounds), key=lambda p: p[1]["y"])
             if spacing > 0:
                 ref_y = pairs[0][1]["y"]
@@ -509,24 +509,24 @@ def distribute_shapes(shape_ids: str, direction: str = "horizontal", spacing: fl
 
     result = conn.safe_call(_distribute)
     if result["success"]:
-        return ToolResult.ok(f"分布完成: {direction} ({result['result']['shape_count']}个形状)", **result["result"])
-    return ToolResult.fail(result.get("error", "分布失败"))
+        return ToolResult.ok(f"Distribution done: {direction} ({result['result']['shape_count']} shapes)", **result["result"])
+    return ToolResult.fail(result.get("error", "Distribution failed"))
 
 
 def set_z_order(shape_id: str, action: str) -> ToolResult:
-    """控制形状的层级顺序。action: front(置顶)/back(置底)/forward(上移一层)/backward(下移一层)。"""
+    """Change a shape's stacking order. action: front (bring to front)/back (send to back)/forward (forward one)/backward (back one)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     action = action.lower()
     if action not in _Z_ORDER_ACTIONS:
-        return ToolResult.fail(f"不支持的层级操作: {action}，可选: {', '.join(sorted(_Z_ORDER_ACTIONS))}")
+        return ToolResult.fail(f"Unsupported z-order action: {action}, options: {', '.join(sorted(_Z_ORDER_ACTIONS))}")
 
     def _order():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         if action == "front":
             shape.OrderToFront()
         elif action == "back":
@@ -539,41 +539,41 @@ def set_z_order(shape_id: str, action: str) -> ToolResult:
 
     result = conn.safe_call(_order)
     if result["success"]:
-        action_names = {"front": "置顶", "back": "置底", "forward": "上移一层", "backward": "下移一层"}
-        return ToolResult.ok(f"层级调整: {shape_id} → {action_names.get(action, action)}", **result["result"])
-    return ToolResult.fail(result.get("error", "层级操作失败"))
+        action_names = {"front": "bring to front", "back": "send to back", "forward": "forward one", "backward": "back one"}
+        return ToolResult.ok(f"Z-order changed: {shape_id} → {action_names.get(action, action)}", **result["result"])
+    return ToolResult.fail(result.get("error", "Z-order action failed"))
 
 
 def delete_shape(shape_id: str) -> ToolResult:
-    """删除指定的形状。"""
+    """Delete the specified shape."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _delete():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         name = shape.Name or shape_id
         shape.Delete()
         return {"shape_id": shape_id, "name": name, "deleted": True}
 
     result = conn.safe_call(_delete)
     if result["success"]:
-        return ToolResult.ok(f"已删除: {result['result']['name']}", **result["result"])
-    return ToolResult.fail(result.get("error", "删除形状失败"))
+        return ToolResult.ok(f"Deleted: {result['result']['name']}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to delete shape"))
 
 
 def rotate_shape(shape_id: str, angle: float, center_x: float = 0, center_y: float = 0) -> ToolResult:
-    """旋转形状。angle 为旋转角度（度，正值逆时针），center_x/center_y 为旋转中心（0=形状自身中心）。"""
+    """Rotate a shape. angle is the rotation angle (degrees, positive = counterclockwise); center_x/center_y is the rotation center (0 = the shape's own center)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _rotate():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         old_angle = 0.0
         try:
             old_angle = shape.RotationAngle
@@ -581,7 +581,7 @@ def rotate_shape(shape_id: str, angle: float, center_x: float = 0, center_y: flo
             pass
         if center_x != 0 or center_y != 0:
             try:
-                # 尝试设置旋转中心（CorelDRAW X6+ 支持）
+                # Try to set the rotation center (supported in CorelDRAW X6+)
                 shape.RotationCenterX = center_x
                 shape.RotationCenterY = center_y
             except Exception:
@@ -591,34 +591,34 @@ def rotate_shape(shape_id: str, angle: float, center_x: float = 0, center_y: flo
 
     result = conn.safe_call(_rotate)
     if result["success"]:
-        return ToolResult.ok(f"形状已旋转: {shape_id} → {angle}°", **result["result"])
-    return ToolResult.fail(result.get("error", "旋转失败"))
+        return ToolResult.ok(f"Shape rotated: {shape_id} → {angle}°", **result["result"])
+    return ToolResult.fail(result.get("error", "Rotation failed"))
 
 
 def ungroup_shapes(shape_id: str, recursive: bool = False) -> ToolResult:
-    """取消群组。shape_id 为群组形状的 ID；recursive=True 时递归取消全部子群组。"""
+    """Ungroup. shape_id is the ID of the group shape; recursive=True ungroups all nested subgroups recursively."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _ungroup():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
-        # 检查是否为群组
+            raise ValueError(f"Shape not found: {shape_id}")
+        # Check whether it is a group
         try:
             is_group = shape.Type == 7  # cdrGroupShape
         except Exception:
             is_group = False
         if not is_group:
-            # duck-type：尝试读取子形状
+            # duck-type: try to read child shapes
             try:
                 _ = shape.Shapes
                 is_group = True
             except Exception:
                 pass
         if not is_group:
-            raise ValueError(f"形状 {shape_id} 不是一个群组")
+            raise ValueError(f"Shape {shape_id} is not a group")
 
         if recursive:
             try:
@@ -631,33 +631,33 @@ def ungroup_shapes(shape_id: str, recursive: bool = False) -> ToolResult:
 
     result = conn.safe_call(_ungroup)
     if result["success"]:
-        detail = "递归取消群组" if recursive else "取消群组"
+        detail = "Ungrouped recursively" if recursive else "Ungrouped"
         return ToolResult.ok(f"{detail}: {shape_id}", **result["result"])
-    return ToolResult.fail(result.get("error", "取消群组失败"))
+    return ToolResult.fail(result.get("error", "Failed to ungroup"))
 
 
 def scale_shape(shape_id: str, scale_x: float, scale_y: float = 0, keep_proportion: bool = False) -> ToolResult:
-    """等比/非等比缩放形状。scale_x 为 X 方向缩放因子（1.0=原尺寸，2.0=放大一倍）。
-    scale_y 为 Y 方向缩放因子，为 0 时与 scale_x 相同（等比）。
-    keep_proportion=True 时忽略 scale_y 强制等比缩放。"""
+    """Scale a shape proportionally or non-proportionally. scale_x is the X scale factor (1.0 = original size,
+    2.0 = double). scale_y is the Y scale factor; 0 means same as scale_x (proportional).
+    keep_proportion=True ignores scale_y and forces proportional scaling."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     if scale_x <= 0:
-        return ToolResult.fail(f"缩放因子必须大于 0，当前 scale_x={scale_x}")
+        return ToolResult.fail(f"Scale factor must be greater than 0, got scale_x={scale_x}")
 
     scale_y = scale_y if scale_y > 0 else scale_x
 
     def _scale():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         old_w = shape.SizeWidth
         old_h = shape.SizeHeight
         new_w = old_w * scale_x
         new_h = old_h * (scale_x if keep_proportion else scale_y)
-        # 保持中心点不变缩放
+        # Scale while keeping the center point fixed
         cx = shape.PositionX + old_w / 2
         cy = shape.PositionY + old_h / 2
         shape.SetSize(new_w, new_h)
@@ -674,26 +674,26 @@ def scale_shape(shape_id: str, scale_x: float, scale_y: float = 0, keep_proporti
     if result["success"]:
         r = result["result"]
         return ToolResult.ok(
-            f"缩放: {r['old_size']['width']}×{r['old_size']['height']} "
+            f"Scaled: {r['old_size']['width']}×{r['old_size']['height']} "
             f"→ {r['new_size']['width']}×{r['new_size']['height']}",
             **r,
         )
-    return ToolResult.fail(result.get("error", "缩放失败"))
+    return ToolResult.fail(result.get("error", "Scaling failed"))
 
 
-# ========== P1 增强工具 ==========
+# ========== P1 enhanced tools ==========
 
 
 def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = "") -> ToolResult:
-    """按条件选择形状并返回匹配的形状列表。
-    by_type: rectangle/ellipse/curve/text/bitmap/group 等
-    by_layer: 图层名称
-    by_name_pattern: 名称包含此字符串的形状
+    """Select shapes by criteria and return the list of matching shapes.
+    by_type: rectangle/ellipse/curve/text/bitmap/group, etc.
+    by_layer: layer name
+    by_name_pattern: shapes whose name contains this string
 
-    不修改 CorelDRAW 中的实际选中状态，只返回匹配列表供其他工具使用。"""
+    Does not change the actual selection in CorelDRAW; only returns the matching list for use by other tools."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     _TYPE_MAP = {
         "rectangle": 1, "ellipse": 2, "curve": 4, "text": 3,
@@ -703,12 +703,12 @@ def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = 
     def _select():
         doc = conn.app.ActiveDocument
         if not doc:
-            raise RuntimeError("没有打开的文档")
+            raise RuntimeError("No document is open")
         page = doc.ActivePage
         matched = []
 
         for s in page.Shapes:
-            # 按图层过滤
+            # Filter by layer
             if by_layer:
                 try:
                     if s.Layer.Name != by_layer:
@@ -716,7 +716,7 @@ def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = 
                 except Exception:
                     continue
 
-            # 按类型过滤
+            # Filter by type
             if by_type:
                 type_lower = by_type.lower()
                 expected = _TYPE_MAP.get(type_lower, -1)
@@ -726,7 +726,7 @@ def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = 
                 except Exception:
                     continue
 
-            # 按名称模式过滤
+            # Filter by name pattern
             if by_name_pattern:
                 try:
                     name = s.Name or ""
@@ -735,7 +735,7 @@ def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = 
                 except Exception:
                     continue
 
-            # 提取形状信息
+            # Extract shape info
             info = _shape_info(s)
             info["shape_id"] = ""
             try:
@@ -757,29 +757,29 @@ def select_shapes(by_type: str = "", by_layer: str = "", by_name_pattern: str = 
         r = result["result"]
         criteria_parts = []
         if by_type:
-            criteria_parts.append(f"类型={by_type}")
+            criteria_parts.append(f"type={by_type}")
         if by_layer:
-            criteria_parts.append(f"图层={by_layer}")
+            criteria_parts.append(f"layer={by_layer}")
         if by_name_pattern:
-            criteria_parts.append(f"名称包含'{by_name_pattern}'")
-        return ToolResult.ok(f"找到 {r['count']} 个匹配形状 ({', '.join(criteria_parts)})", **r)
-    return ToolResult.fail(result.get("error", "选择形状失败"))
+            criteria_parts.append(f"name contains '{by_name_pattern}'")
+        return ToolResult.ok(f"Found {r['count']} matching shapes ({', '.join(criteria_parts)})", **r)
+    return ToolResult.fail(result.get("error", "Failed to select shapes"))
 
 
 def powerclip(content_shape_id: str, container_shape_id: str) -> ToolResult:
-    """将 content 形状放入 container 形状内（PowerClip）。
-    类似于 AI 的剪切蒙版，用于将图案/文字限制在特定区域内。"""
+    """Place the content shape inside the container shape (PowerClip).
+    Similar to a clipping mask in Illustrator; used to confine graphics/text to a specific area."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _clip():
         content = _find_shape(content_shape_id)
         if content is None:
-            raise ValueError(f"未找到内容形状: {content_shape_id}")
+            raise ValueError(f"Content shape not found: {content_shape_id}")
         container = _find_shape(container_shape_id)
         if container is None:
-            raise ValueError(f"未找到容器形状: {container_shape_id}")
+            raise ValueError(f"Container shape not found: {container_shape_id}")
 
         placed = False
         for method in (
@@ -797,7 +797,7 @@ def powerclip(content_shape_id: str, container_shape_id: str) -> ToolResult:
                 continue
 
         if not placed:
-            raise RuntimeError("当前 CorelDRAW 版本不支持已知的 PowerClip API")
+            raise RuntimeError("This CorelDRAW version does not support any known PowerClip API")
 
         return {
             "content_id": content_shape_id,
@@ -811,4 +811,4 @@ def powerclip(content_shape_id: str, container_shape_id: str) -> ToolResult:
             f"PowerClip: {content_shape_id} → {container_shape_id}",
             **result["result"],
         )
-    return ToolResult.fail(result.get("error", "PowerClip 操作失败"))
+    return ToolResult.fail(result.get("error", "PowerClip operation failed"))

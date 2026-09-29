@@ -1,6 +1,6 @@
-"""Streamlit Chat UI — CorelDRAW 调试对话框
+"""Streamlit Chat UI - CorelDRAW debug chat
 
-启动: streamlit run server/app.py
+Run: streamlit run server/app.py
 """
 
 import sys
@@ -8,29 +8,29 @@ from pathlib import Path
 
 import streamlit as st
 
-# 确保 server/ 目录在 sys.path
+# Make sure the server/ directory is on sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from agent.runner import SignageAgent
 
 
-st.set_page_config(page_title="CorelDRAW 调试", page_icon="🏗️", layout="wide")
+st.set_page_config(page_title="CorelDRAW Debug", page_icon="🏗️", layout="wide")
 
-st.title("🏗️ CorelDRAW 调试")
-st.caption("用自然语言操控 CorelDRAW，自动生成门牌、导向标识等设计文件")
+st.title("🏗️ CorelDRAW Debug")
+st.caption("Control CorelDRAW with natural language to automatically generate door signs, wayfinding signs and other design files")
 
 # =============================================================================
-# 侧边栏 — 模型配置
+# Sidebar - model configuration
 # =============================================================================
 
 with st.sidebar:
-    st.header("⚙️ 模型配置")
+    st.header("⚙️ Model configuration")
 
     provider = st.selectbox(
         "Provider",
         ["anthropic", "openai"],
         index=0,
-        help="Anthropic = Claude 系列；OpenAI 兼容 = DeepSeek / Qwen / 通义千问等",
+        help="Anthropic = Claude models; OpenAI-compatible = DeepSeek / Qwen / Tongyi Qianwen etc.",
     )
 
     if provider == "openai":
@@ -38,7 +38,7 @@ with st.sidebar:
             "API Base URL",
             value=st.session_state.get("base_url", ""),
             placeholder="https://api.deepseek.com",
-            help="DeepSeek: api.deepseek.com | 千问: dashscope.aliyuncs.com/compatible-mode/v1",
+            help="DeepSeek: api.deepseek.com | Qwen: dashscope.aliyuncs.com/compatible-mode/v1",
         )
         default_model = "deepseek-chat"
     else:
@@ -51,12 +51,12 @@ with st.sidebar:
         "API Key",
         type="password",
         value=st.session_state.get("api_key", ""),
-        help=f"Anthropic 默认读 ANTHROPIC_API_KEY；OpenAI 兼容读 OPENAI_API_KEY / DASHSCOPE_API_KEY",
+        help=f"Anthropic reads ANTHROPIC_API_KEY by default; OpenAI-compatible reads OPENAI_API_KEY / DASHSCOPE_API_KEY",
     )
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔗 连接", use_container_width=True):
+        if st.button("🔗 Connect", use_container_width=True):
             try:
                 st.session_state.agent = SignageAgent(
                     provider=provider,
@@ -69,12 +69,12 @@ with st.sidebar:
                 st.session_state.api_key = api_key
                 st.session_state.base_url = base_url
                 st.session_state.connected = True
-                st.success(f"已连接 {model}")
+                st.success(f"Connected {model}")
             except Exception as e:
-                st.error(f"连接失败: {e}")
+                st.error(f"Connection failed: {e}")
                 st.session_state.connected = False
     with col2:
-        if st.button("🗑️ 清空对话", use_container_width=True):
+        if st.button("🗑️ Clear chat", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
 
@@ -82,10 +82,10 @@ with st.sidebar:
         st.success(f"✅ {st.session_state.get('model', '')}")
 
     st.divider()
-    st.caption("提示：首次使用需先点「🔗 连接」初始化 Agent")
+    st.caption("Tip: on first use, click \"🔗 Connect\" to initialize the agent")
 
 # =============================================================================
-# 初始化 session state
+# Initialize session state
 # =============================================================================
 
 if "agent" not in st.session_state:
@@ -96,7 +96,7 @@ if "connected" not in st.session_state:
     st.session_state.connected = False
 
 # =============================================================================
-# 渲染历史消息
+# Render message history
 # =============================================================================
 
 for msg in st.session_state.messages:
@@ -107,7 +107,7 @@ for msg in st.session_state.messages:
 
     elif role == "reasoning":
         with st.chat_message("assistant"):
-            with st.expander("🧠 推理过程", expanded=False):
+            with st.expander("🧠 Reasoning", expanded=False):
                 st.markdown(msg["content"])
 
     elif role == "tool_call":
@@ -115,10 +115,10 @@ for msg in st.session_state.messages:
             with st.expander(f"🔧 {msg['name']}", expanded=False):
                 cols = st.columns(2)
                 with cols[0]:
-                    st.caption("参数")
+                    st.caption("Parameters")
                     st.json(msg.get("input", {}))
                 with cols[1]:
-                    st.caption("结果")
+                    st.caption("Result")
                     result = msg.get("result", {})
                     if isinstance(result, dict):
                         st.json(result)
@@ -127,7 +127,7 @@ for msg in st.session_state.messages:
         with st.chat_message("assistant"):
             st.image(
                 f"data:image/png;base64,{msg['base64']}",
-                caption=msg.get("path", "预览图"),
+                caption=msg.get("path", "Preview"),
                 width=400,
             )
 
@@ -140,36 +140,36 @@ for msg in st.session_state.messages:
             st.error(msg["content"])
 
 # =============================================================================
-# 用户输入与 Agent 执行
+# User input and agent execution
 # =============================================================================
 
-if prompt := st.chat_input("请输入设计指令，如：生成门牌301，部门名研发中心…"):
+if prompt := st.chat_input("Enter a design instruction, e.g.: Generate door sign 301, department R&D Center..."):
     if not st.session_state.connected or st.session_state.agent is None:
-        st.error("请先在左侧边栏配置模型并点击「🔗 连接」")
+        st.error("Please configure the model in the left sidebar and click \"🔗 Connect\" first")
         st.stop()
 
-    # 展示用户消息
+    # Show user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     agent: SignageAgent = st.session_state.agent
 
-    # 运行 Agent，实时渲染事件
+    # Run the agent, rendering events live
     with st.chat_message("assistant"):
         status_placeholder = st.empty()
-        tool_results_buffer = {}  # tool_name → result, 用于 tool_call + tool_result 配对
+        tool_results_buffer = {}  # tool_name -> result, used to pair tool_call + tool_result
 
         for event in agent.run_single_stream(prompt):
             etype = event["type"]
 
             # ---- thinking ----
             if etype == "thinking":
-                status_placeholder.info(f"🤔 思考中… (第 {event['turn']} 轮)")
+                status_placeholder.info(f"🤔 Thinking... (turn {event['turn']})")
 
-            # ---- reasoning (DeepSeek 推理模型的思维链) ----
+            # ---- reasoning (chain of thought from DeepSeek reasoning models) ----
             elif etype == "reasoning":
-                with st.expander("🧠 推理过程", expanded=True):
+                with st.expander("🧠 Reasoning", expanded=True):
                     st.markdown(event["content"])
                 st.session_state.messages.append({"role": "reasoning", "content": event["content"]})
 
@@ -183,7 +183,7 @@ if prompt := st.chat_input("请输入设计指令，如：生成门牌301，部�
             elif etype == "tool_call":
                 name = event["name"]
                 inp = event["input"]
-                status_placeholder.info(f"🔧 调用工具: {name}")
+                status_placeholder.info(f"🔧 Calling tool: {name}")
                 tool_results_buffer[name] = {"input": inp, "result": None}
 
             # ---- tool_result ----
@@ -195,10 +195,10 @@ if prompt := st.chat_input("请输入设计指令，如：生成门牌301，部�
                 with st.expander(f"🔧 {name}", expanded=True):
                     cols = st.columns(2)
                     with cols[0]:
-                        st.caption("参数")
+                        st.caption("Parameters")
                         st.json(inp)
                     with cols[1]:
-                        st.caption("结果")
+                        st.caption("Result")
                         st.json(result)
 
                 st.session_state.messages.append({
@@ -210,7 +210,7 @@ if prompt := st.chat_input("请输入设计指令，如：生成门牌301，部�
             elif etype == "preview":
                 st.image(
                     f"data:image/png;base64,{event['base64']}",
-                    caption=event.get("path", "预览图"),
+                    caption=event.get("path", "Preview"),
                     width=400,
                 )
                 st.session_state.messages.append({
@@ -227,7 +227,7 @@ if prompt := st.chat_input("请输入设计指令，如：生成门牌301，部�
             elif etype == "final":
                 status_placeholder.empty()
                 if event["success"]:
-                    msg = f"✅ {event['message']}\n\n> 共 {event['turns']} 轮，{event['tool_calls']} 次工具调用"
+                    msg = f"✅ {event['message']}\n\n> {event['turns']} turns, {event['tool_calls']} tool calls"
                     st.success(msg)
                 else:
                     msg = f"❌ {event['message']}"

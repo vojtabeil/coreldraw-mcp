@@ -1,4 +1,4 @@
-"""工程图工具 — 标题栏填充、工程图框架组装"""
+"""Engineering drawing tools — title block population, engineering drawing frame assembly"""
 
 import os
 
@@ -21,14 +21,15 @@ def populate_title_block(
     revision: str = "A",
     output_path: str = "",
 ) -> ToolResult:
-    """填充工程图标题栏。打开工程图 CDR 模板，按参数替换标题栏各字段文字形状，
-    保存到 output_path（省略则覆盖原文件）。形状名称须与字段名一致（如 title_project_name）。"""
+    """Populate an engineering drawing title block. Opens the engineering drawing CDR template, replaces the
+    title block field text shapes with the given parameters and saves to output_path (overwrites the template
+    if omitted). Shape names must match the field names (e.g. title_project_name)."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     if not os.path.isfile(template_path):
-        return ToolResult.fail(f"模板文件不存在: {template_path}")
+        return ToolResult.fail(f"Template file does not exist: {template_path}")
 
     save_path = output_path or template_path
 
@@ -43,7 +44,7 @@ def populate_title_block(
         "title_sheet_no": sheet_no,
         "title_revision": revision,
     }
-    # 只写非空字段
+    # Only write non-empty fields
     fields = {k: v for k, v in fields.items() if v}
 
     def _populate():
@@ -60,7 +61,7 @@ def populate_title_block(
             except Exception:
                 skipped.append(s.Name)
 
-        # 遍历所有页（工程图可能多页）
+        # Iterate all pages (engineering drawings may have multiple pages)
         for pg in doc.Pages:
             if pg.Index == page.Index:
                 continue
@@ -92,11 +93,11 @@ def populate_title_block(
     if result["success"]:
         r = result["result"]
         cnt = len(r["replaced"])
-        msg = f"标题栏填充完成: {cnt} 个字段 → {save_path}"
+        msg = f"Title block populated: {cnt} field(s) → {save_path}"
         if r["not_found"]:
-            msg += f"，{len(r['not_found'])} 个字段未找到形状: {r['not_found']}"
+            msg += f", {len(r['not_found'])} field(s) with no matching shape: {r['not_found']}"
         return ToolResult.ok(msg, **r)
-    return ToolResult.fail(result.get("error", "标题栏填充失败"))
+    return ToolResult.fail(result.get("error", "Title block population failed"))
 
 
 def assemble_engineering_drawing(
@@ -105,26 +106,27 @@ def assemble_engineering_drawing(
     output_path: str,
     title_block_fields: dict = None,
 ) -> ToolResult:
-    """将设计文件嵌入工程图框架模板，生成完整工程图 CDR 文件。
-    先填充标题栏，再导入设计文件内容到框架的 design_zone 图层/形状区域。
-    title_block_fields 为标题栏字段字典，键名与 populate_title_block 参数一致。"""
+    """Embed a design file into an engineering drawing frame template, producing a complete engineering drawing CDR.
+    First populates the title block, then imports the design file contents into the frame's design_zone
+    layer/shape area. title_block_fields is a dict of title block fields, keys matching populate_title_block's
+    parameters."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     if not os.path.isfile(design_path):
-        return ToolResult.fail(f"设计文件不存在: {design_path}")
+        return ToolResult.fail(f"Design file does not exist: {design_path}")
     if not os.path.isfile(frame_template_path):
-        return ToolResult.fail(f"工程图框架模板不存在: {frame_template_path}")
+        return ToolResult.fail(f"Engineering drawing frame template does not exist: {frame_template_path}")
 
     fields = title_block_fields or {}
 
     def _assemble():
-        # 打开工程图框架
+        # Open the engineering drawing frame
         doc = conn.app.OpenDocument(frame_template_path)
         page = doc.ActivePage
 
-        # 填充标题栏
+        # Populate the title block
         replaced_fields = {}
         field_map = {
             "title_project_name": fields.get("project_name", ""),
@@ -145,7 +147,7 @@ def assemble_engineering_drawing(
             except Exception:
                 pass
 
-        # 导入设计文件到框架
+        # Import the design file into the frame
         import_file(conn.app, doc, design_path)
 
         dirpath = os.path.dirname(output_path)
@@ -163,5 +165,5 @@ def assemble_engineering_drawing(
     result = conn.safe_call(_assemble)
     if result["success"]:
         r = result["result"]
-        return ToolResult.ok(f"工程图已组装: {output_path}", **r)
-    return ToolResult.fail(result.get("error", "工程图组装失败"))
+        return ToolResult.ok(f"Engineering drawing assembled: {output_path}", **r)
+    return ToolResult.fail(result.get("error", "Engineering drawing assembly failed"))

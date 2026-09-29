@@ -1,11 +1,11 @@
-"""图层管理工具 — 创建/锁/显隐图层，形状图层分配"""
+"""Layer tools - create/lock/show/hide layers, assign shapes to layers"""
 
 from core.connection import get_connection
 from core.models import ToolResult
 
 
 def _find_shape(shape_id: str):
-    """按名称或 StaticID 查找形状"""
+    """Find a shape by name or StaticID"""
     conn = get_connection()
     doc = conn.app.ActiveDocument
     if not doc:
@@ -28,10 +28,10 @@ def _find_shape(shape_id: str):
 
 
 def create_layer(name: str, color: str = "") -> ToolResult:
-    """创建新图层。color 用于图层标识（激光机识别），如 'red' / 'blue'。"""
+    """Create a new layer. color is used to identify the layer (for the laser machine), e.g. 'red' / 'blue'."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _create():
         page = conn.app.ActiveDocument.ActivePage
@@ -51,15 +51,15 @@ def create_layer(name: str, color: str = "") -> ToolResult:
 
     result = conn.safe_call(_create)
     if result["success"]:
-        return ToolResult.ok(f"图层已创建: {name}", **result["result"])
-    return ToolResult.fail(result.get("error", "创建图层失败"))
+        return ToolResult.ok(f"Layer created: {name}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to create layer"))
 
 
 def get_layers() -> ToolResult:
-    """获取当前页面的所有图层信息。"""
+    """Get info about all layers on the current page."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _list():
         page = conn.app.ActiveDocument.ActivePage
@@ -95,81 +95,81 @@ def get_layers() -> ToolResult:
 
     result = conn.safe_call(_list)
     if result["success"]:
-        return ToolResult.ok(f"共 {result['result']['count']} 个图层", **result["result"])
-    return ToolResult.fail(result.get("error", "获取图层列表失败"))
+        return ToolResult.ok(f"{result['result']['count']} layers in total", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to get layer list"))
 
 
 def assign_to_layer(shape_id: str, layer_name: str) -> ToolResult:
-    """将形状移动到指定图层。"""
+    """Move a shape to the specified layer."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _assign():
         shape = _find_shape(shape_id)
         if shape is None:
-            raise ValueError(f"未找到形状: {shape_id}")
+            raise ValueError(f"Shape not found: {shape_id}")
         page = conn.app.ActiveDocument.ActivePage
         target_layer = None
         try:
             target_layer = page.Layers(layer_name)
         except Exception:
-            raise ValueError(f"未找到图层: {layer_name}")
+            raise ValueError(f"Layer not found: {layer_name}")
         target_layer.Activate()
-        # 将形状移动到目标图层
+        # Move the shape to the target layer
         try:
             shape.MoveToLayer(target_layer)
         except Exception:
             try:
                 shape.Layer = target_layer
             except Exception:
-                raise RuntimeError(f"无法移动形状到图层: {layer_name}")
+                raise RuntimeError(f"Cannot move shape to layer: {layer_name}")
         return {"shape_id": shape_id, "layer": layer_name}
 
     result = conn.safe_call(_assign)
     if result["success"]:
-        return ToolResult.ok(f"形状已移至图层: {layer_name}", **result["result"])
-    return ToolResult.fail(result.get("error", "分配图层失败"))
+        return ToolResult.ok(f"Shape moved to layer: {layer_name}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to assign layer"))
 
 
 def set_layer_visible(layer_name: str, visible: bool) -> ToolResult:
-    """设置图层的可见性。"""
+    """Set the visibility of a layer."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _set():
         page = conn.app.ActiveDocument.ActivePage
         try:
             layer = page.Layers(layer_name)
         except Exception:
-            raise ValueError(f"未找到图层: {layer_name}")
+            raise ValueError(f"Layer not found: {layer_name}")
         layer.Visible = visible
         return {"layer": layer_name, "visible": visible}
 
     result = conn.safe_call(_set)
     if result["success"]:
-        status = "可见" if visible else "隐藏"
-        return ToolResult.ok(f"图层 {layer_name} 已设为{status}", **result["result"])
-    return ToolResult.fail(result.get("error", "设置图层可见性失败"))
+        status = "visible" if visible else "hidden"
+        return ToolResult.ok(f"Layer {layer_name} set to {status}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to set layer visibility"))
 
 
 def lock_layer(layer_name: str) -> ToolResult:
-    """锁定图层，防止意外编辑。"""
+    """Lock a layer to prevent accidental edits."""
     conn = get_connection()
     if not conn.status.connected:
-        return ToolResult.fail("CorelDRAW 未连接")
+        return ToolResult.fail("CorelDRAW is not connected")
 
     def _lock():
         page = conn.app.ActiveDocument.ActivePage
         try:
             layer = page.Layers(layer_name)
         except Exception:
-            raise ValueError(f"未找到图层: {layer_name}")
+            raise ValueError(f"Layer not found: {layer_name}")
         layer.Editable = False
         return {"layer": layer_name, "locked": True}
 
     result = conn.safe_call(_lock)
     if result["success"]:
-        return ToolResult.ok(f"图层已锁定: {layer_name}", **result["result"])
-    return ToolResult.fail(result.get("error", "锁定图层失败"))
+        return ToolResult.ok(f"Layer locked: {layer_name}", **result["result"])
+    return ToolResult.fail(result.get("error", "Failed to lock layer"))
