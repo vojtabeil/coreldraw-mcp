@@ -13,6 +13,8 @@
 
 ---
 
+[2026-09-29 VERIFY] 排查 /mcp 连接 coreldraw 报 HTTP 501：8765 端口被 `python -m http.server` 占用（PID 43036），且无 .env 导致 MCP_TRANSPORT 默认 stdio、MCP Server 未以 HTTP 模式启动。修复步骤：停占用进程 → cp .env.example .env → cd server && python server.py。未改代码
+
 [2026-06-04 FIX] 新增英文 README，原中文版改为 README-CN，修正两处 License 行错写的 MIT → Apache 2.0
 
 [2026-06-04 FIX] 版权主体改为深圳市玄熵智能科技有限责任公司，新增 NOTICE 文件，格式与 My-Hermes-Desktop 一致
