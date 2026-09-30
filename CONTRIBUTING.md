@@ -58,7 +58,7 @@ Configuration is in `pyproject.toml`: `line-length=120`, `target-version=py311`,
 A new tool needs all three of the following:
 
 1. **Implement the function** in the matching module under `server/tools/`, returning a `ToolResult` — see the
-   standard pattern in [CLAUDE.md](CLAUDE.md)
+   standard pattern in [AGENTS.md](AGENTS.md)
 2. **Register the tool** with `mcp.add_tool()` in `register_tools()` in `server/server.py`
 3. **Write the docstring** — it is exposed to the agent as the tool description, so explain every parameter
 
