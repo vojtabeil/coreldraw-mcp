@@ -79,6 +79,9 @@ signage files from Excel data.
 - Agent session persistence — resume an interrupted job without losing context
 - Token usage and cost tracking
 - Check for 64-bit Python at startup (32-bit Python makes COM calls fail silently)
+- Inconsistent COM type numbers: text shape is 6 in `colors.py` but 3 (= curve) in `engineering.py`, `preflight.py`,
+  `document.py`, `data_merge.py`; RGB checks use `color.Type == 1` (= Pantone, RGB is 5). Verify on the supported
+  CorelDRAW versions and unify into one constants module
 - Test coverage: `test_e2e.py` covers ~18 tool calls; 40+ MCP tools have no tests (all of shapes, data_merge,
   engineering, templates, colors, parts of export)
 

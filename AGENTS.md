@@ -38,9 +38,11 @@ The MCP server uses the `stdio` transport by default. Set `MCP_TRANSPORT=streama
    ```
 4. **Every tool is registered in `server.py`** — a new tool must also get an `mcp.add_tool()` line there.
 5. **The function docstring is the MCP tool description** the agent sees — explain every parameter clearly.
-6. **COM constants are hard-coded integers** (`cdrDXF=86`, `cdrPNG=776`, `cdrMillimeter=2`, `cdrTextShape=3`, etc.).
+6. **COM constants are hard-coded integers** (`cdrDXF=1296`, `cdrPNG=802`, `cdrSVG=1345`, `cdrMillimeter=3`, etc.).
    They come from the CorelDRAW type library, whose stubs only exist after running `makepy` on Windows — do not try to
-   import them from `win32com.client.constants`.
+   import them from `win32com.client.constants`. Look values up in
+   `C:\Program Files\Corel\<suite>\<version>\Programs64\TypeLibs\VGCoreAuto.tlb` (e.g. with
+   `pythoncom.LoadTypeLib`) instead of guessing.
 7. **Importing and saving**: use `import_file()` and `save_document_as()` from `core.connection`. `Import` belongs to a
    Layer, not a Document, and `SaveAs`/`ImportEx` need their options object passed explicitly — omitting it makes
    pywin32 fail with "The Python instance can not be converted to a COM object".
@@ -61,7 +63,19 @@ The MCP server uses the `stdio` transport by default. Set `MCP_TRANSPORT=streama
   pool, so tool functions must never call COM directly — always go through `conn.safe_call()`.
 - `disconnect()` only releases COM references and never calls `Quit()`; the user manages CorelDRAW's lifetime.
 - `reconnect_on_failure=False`: a failing tool must not trigger a reconnect, to avoid cascading crashes.
-- **`cdrTextShape` is 3, not 6** (verified on CorelDRAW 2020).
+- **Shape and colour type numbers are inconsistent in the server code.** The type library and a live check on
+  CorelDRAW 2025 give `cdrCurveShape=3`, `cdrBitmapShape=5`, `cdrTextShape=6`, `cdrColorPantone=1`, `cdrColorRGB=5`.
+  `colors.py` uses text = 6; `engineering.py`, `preflight.py`, `document.py` and `data_merge.py` use text = 3, and several
+  RGB checks test `color.Type == 1`. Verify against the version in use before relying on them (see ROADMAP backlog).
+- **`GetActiveObject("CorelDRAW.Application")` can fail with "Operation unavailable"** even while CorelDRAW is running
+  (seen on 2025); `Dispatch()` then attaches to the running instance. Check that the process runs first, or `Dispatch`
+  will start CorelDRAW.
+- **PowerTRACE via COM** (`shape.Bitmap.Trace(...)` → `TraceSettings` → `Finish()`): the colour mode is fixed by the
+  `Trace()` call (`SetColorMode` fails afterwards); editing `TraceSettings.Color(i)` has no effect; built-in libraries
+  (Pantone, HKS, …) only work in spot mode (`ColorMode=25` + `cdrPaletteID`); traced colours drift by ~1 RGB unit even on
+  an already reduced bitmap, so snap fills afterwards.
+- **SVG export** writes colours as CSS classes (`.fil0 {fill:#1D3557}`) and sometimes colour names (`white`), always as
+  RGB — CMYK and spot information is lost — and sizes in inches regardless of the document unit.
 - **`layer.Color` returns a COM object** and cannot go into a dict as-is; convert with `int(c)` or `str(c)`, otherwise
   FastMCP fails to serialize the outputSchema.
 - **`register_tools()` imports all tool modules in one statement**: if any module fails to import, no tools get
