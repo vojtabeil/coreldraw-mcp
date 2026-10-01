@@ -6,7 +6,8 @@ from core.models import ToolResult
 _CDR_TEXT_SHAPE = 3
 _CDR_PARAGRAPH_TEXT = 1
 _CDR_MILLIMETER = 3
-_ALIGNMENT_MAP = {"left": 0, "center": 3, "right": 1, "none": 0}
+# cdrAlignment: cdrNoAlignment=0, cdrLeftAlignment=1, cdrRightAlignment=2, cdrCenterAlignment=3, cdrFullJustifyAlignment=4
+_ALIGNMENT_MAP = {"left": 1, "center": 3, "right": 2, "justify": 4, "none": 0}
 
 
 def _find_text_shape(shape_id: str):
@@ -60,7 +61,13 @@ def _get_text_content(text) -> str:
     return ""
 
 
+def _to_corel_newlines(content: str) -> str:
+    """CorelDRAW separates paragraphs with CR; LF is silently dropped."""
+    return content.replace("\r\n", "\r").replace("\n", "\r")
+
+
 def _set_text_content(text, content: str) -> None:
+    content = _to_corel_newlines(content)
     for setter in (
         lambda: setattr(text, "Contents", content),
         lambda: text.SetContents(2, content),
@@ -176,11 +183,17 @@ def set_text_style(
             except Exception:
                 pass
         if alignment and alignment in _ALIGNMENT_MAP:
-            try:
-                text.Alignment = _ALIGNMENT_MAP[alignment]
-                changes["alignment"] = alignment
-            except Exception:
-                pass
+            value = _ALIGNMENT_MAP[alignment]
+            for setter in (
+                lambda: setattr(text.Story, "Alignment", value),
+                lambda: setattr(text, "Alignment", value),
+            ):
+                try:
+                    setter()
+                    changes["alignment"] = alignment
+                    break
+                except Exception:
+                    continue
         if not changes:
             raise ValueError("No style changes specified")
         return {"shape_id": shape_id, "changes": changes}
@@ -280,7 +293,7 @@ def create_text_frame(x: float, y: float, width: float, height: float, text: str
         layer = doc.ActivePage.ActiveLayer
         left, top = x, y
         right, bottom = x + width, y + height
-        shape = layer.CreateParagraphText(left, top, right, bottom, text)
+        shape = layer.CreateParagraphText(left, top, right, bottom, _to_corel_newlines(text))
         _apply_default_text_style(shape, height)
         shape.Name = f"text_{shape.StaticID}"
         return {

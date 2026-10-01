@@ -270,7 +270,7 @@ def list_all_text_shapes(page_index: int = 0, content_preview_len: int = 40) -> 
             # Distinguish artistic text / paragraph text / converted to curves
             try:
                 t = s.Text
-                story = t.Story
+                story = t.Story.Text  # Story is a TextRange COM object, not a str
                 item["writable"] = True
                 item["content_preview"] = (story[:content_preview_len] + "…"
                                            if len(story) > content_preview_len else story)
